@@ -5,15 +5,9 @@ module.exports = {
     es2020: true,
   },
   extends: [
-    'standard',
+    'standard-with-typescript',
   ],
-  globals: {
-    artifacts: 'readonly',
-    contract: 'readonly',
-    assert: 'readonly',
-    web3: 'readonly'
-  },
-  // 'parser': '@babel/eslint-parser',
+  parser: '@typescript-eslint/parser',
   rules: {
     'no-await-in-loop': 0,
     'no-underscore-dangle': 0,
@@ -24,12 +18,21 @@ module.exports = {
     'no-mixed-operators': 0,
     'new-cap': 0,
     'max-len': 0,
+    'promise/always-return': 'off',
+    'import/no-cycle': 'off',
+    'no-shadow': 'off',
+    '@typescript-eslint/no-shadow': 'off',
+    'import/extensions': 'off',
+    'object-curly-newline': ['error', { multiline: true }],
+    '@typescript-eslint/restrict-template-expressions': 0,
+    '@typescript-eslint/no-misused-promises': 0
   },
   parserOptions: {
-    requireConfigFile: false,
-    ecmaVersion: 2020
+    ecmaVersion: 2020,
+    sourceType: 'module',
+    project: './tsconfig.json',
+    tsconfigRootDir: __dirname,
+    createDefaultProgram: true,
   },
-  plugins: [
-    '@babel',
-  ],
+  settings: { 'import/parsers': { '@typescript-eslint/parser': ['.ts', '.tsx'] }, },
 }

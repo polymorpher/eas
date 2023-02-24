@@ -1,19 +1,21 @@
-require('dotenv').config()
-const Fingerprint = require('express-fingerprint')
-const createError = require('http-errors')
-const express = require('express')
-const path = require('path')
-const cookieParser = require('cookie-parser')
-const logger = require('morgan')
-const config = require('./config')
-const _index = require('./routes/index')
-const bodyParser = require('body-parser')
-const app = express()
-const https = require('https')
-const http = require('http')
-const env = process.env.NODE_ENV || 'development'
-const fs = require('fs')
+import dotenv from 'dotenv'
+import Fingerprint from 'express-fingerprint'
+import createError from 'http-errors'
+import express from 'express'
+import path from 'path'
+import cookieParser from 'cookie-parser'
+import logger from 'morgan'
+import config from './config'
+import _index from './routes'
+import * as bodyParser from 'body-parser'
+import * as https from 'https'
+import * as http from 'http'
+import * as fs from 'fs'
 
+dotenv.config()
+
+const app = express()
+const env = process.env.NODE_ENV ?? 'development'
 Error.stackTraceLimit = 100
 app.locals.ENV = env
 app.locals.ENV_DEVELOPMENT = env === 'development'
@@ -32,8 +34,8 @@ if (config.https.only) {
   const httpRouter = express.Router()
   httpApp.use('*', httpRouter)
   httpRouter.get('*', function (req, res) {
-    const hostPort = (req.get('host') || '').split(':')
-    const url = hostPort.length === 2 ? `https://${hostPort[0]}:${config.httpsPort}${req.originalUrl}` : `https://${hostPort[0]}${req.originalUrl}`
+    const hostPort = (req.get('host') ?? '').split(':')
+    const url = hostPort.length === 2 ? `https://${hostPort[0]}:${process.env.HTTPS_PORT}${req.originalUrl}` : `https://${hostPort[0]}${req.originalUrl}`
     res.redirect(url)
   })
   httpServer = http.createServer(httpApp)
@@ -44,28 +46,26 @@ const httpsServer = https.createServer(httpsOptions, app)
 
 app.use(Fingerprint({
   parameters: [
+    // @ts-expect-error missing decl
     Fingerprint.useragent,
+    // @ts-expect-error missing decl
     Fingerprint.acceptHeaders,
-    Fingerprint.geoip,
+    // @ts-expect-error missing decl
+    Fingerprint.geoip
   ]
 }))
 
-app.use(bodyParser.json({
-  verify: function (req, _res, buf) {
-    req.rawBody = buf
-  }
-}))
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(logger('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
 
-if (config.corsOrigins) {
+if (config.corsOrigins !== '') {
   app.use((req, res, next) => {
     // res.header('Access-Control-Allow-Origin', config.corsOrigins)
-    if (config.corsOrigins === '*' || config.corsOrigins.indexOf(req.headers.origin) >= 0) {
-      res.header('Access-Control-Allow-Origin', req.headers.origin || config.corsOrigins)
+    if (config.corsOrigins === '*' || config.corsOrigins.includes(req.headers.origin as string)) {
+      res.header('Access-Control-Allow-Origin', req.headers.origin ?? config.corsOrigins)
     } else {
       res.header('Access-Control-Allow-Origin', config.corsOrigins)
     }
@@ -77,7 +77,9 @@ if (config.corsOrigins) {
 }
 
 app.use(express.static(path.join(__dirname, 'public')))
-app.options('*', async (_req, res) => res.end())
+app.options('*', async (_req, res) => {
+  res.end()
+})
 app.use('/', _index)
 
 // catch 404 and forward to error handler
@@ -92,11 +94,11 @@ app.use(function (err, req, res, next) {
   res.locals.error = config.debug ? err : {}
 
   // render the error page
-  res.status(err.status || 500)
+  res.status(err.status ?? 500)
   res.json({ error: res.locals.error, message: err.message })
 })
 
-module.exports = {
+export {
   httpServer,
   httpsServer
 }
