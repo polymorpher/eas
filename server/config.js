@@ -7,7 +7,7 @@ const config = {
   easContract: process.env.EAS_CONTRACT,
   improvMX:{
     apiRoot: process.env.IMPROV_MX_API_ROOT,
-    mx: JSON.parse(process.env.IMPROV_MX_DNS_RECORDS)
+    mx: JSON.parse(process.env.IMPROV_MX_DNS_RECORDS || '[]')
   },
   verbose: process.env.VERBOSE === 'true' || process.env.VERBOSE === '1',
   https: {
