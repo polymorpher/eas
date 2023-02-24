@@ -33,6 +33,9 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: 0
   },
+  typechain: {
+    target: 'ethers-v5'
+  },
   networks: {
     local: {
       url: process.env.LOCAL_URL || 'http://localhost:8545',
@@ -78,7 +81,7 @@ const config: HardhatUserConfig = {
     flat: true,
     spacing: 2,
     format: 'json',
-    only: ['DC']
+    only: ['EAS', 'IDC']
   },
   spdxLicenseIdentifier: {
     overwrite: true,

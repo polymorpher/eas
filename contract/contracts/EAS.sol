@@ -25,9 +25,10 @@ contract EAS is Ownable {
     struct EASConfig {
         // alias hash => commitment hash;
         // later alias can be a regex with capturing, so it should be kept hashed and remain confidential. It's also more efficient to store it this way
-        mapping(bytes32 => bytes32) forwardConfigs;
+        mapping(bytes32 => bytes32) forwards;
         uint256 numAlias; // only a single config is supported in initial version
         string[] publicAliases; // user-configured; we do not verify.
+        bytes32[] keys; // list of keys in forwards
     }
 
     mapping(bytes32 => EASConfig) public configs;
@@ -40,6 +41,18 @@ contract EAS is Ownable {
     constructor(IDC _dc, uint256 _maxNumAlias) {
         dc = _dc;
         maxNumAlias = _maxNumAlias;
+    }
+
+    function getCommitment(bytes32 node, bytes32 aliasName) public view returns (bytes32){
+        return configs[node].forwards[aliasName];
+    }
+
+    function getPublicAliases(bytes32 node) public view returns (string[] memory){
+        return configs[node].publicAliases;
+    }
+
+    function getNumAlias(bytes32 node) public view returns (uint256){
+        return configs[node].numAlias;
     }
 
     function setDc(IDC _dc) public onlyOwner {
@@ -58,18 +71,38 @@ contract EAS is Ownable {
 
     function activate(bytes32 node, bytes32 aliasName, bytes32 commitment) public onlyNodeOwner(node) {
         EASConfig storage ec = configs[node];
-        if(ec.numAlias >= maxNumAlias && ec.forwardConfigs[aliasName] == bytes32(0)) {
+        if(ec.numAlias >= maxNumAlias && ec.forwards[aliasName] == bytes32(0)) {
             revert("EAS: exceeded maxNumAlias");
         }
         ec.numAlias += 1;
-        ec.forwardConfigs[aliasName] = commitment;
+        ec.forwards[aliasName] = commitment;
+        ec.keys.push(aliasName);
     }
 
     function deactivate(bytes32 node, bytes32 aliasName) public onlyNodeOwner(node){
         EASConfig storage ec = configs[node];
-        require(ec.forwardConfigs[aliasName] != bytes32(0), "EAS: already deactivated");
+        require(ec.forwards[aliasName] != bytes32(0), "EAS: already deactivated");
         ec.numAlias -= 1;
-        delete ec.forwardConfigs[aliasName];
+        delete ec.forwards[aliasName];
+        uint256 pos=ec.keys.length;
+        for(uint256 i=0;i<ec.keys.length;i++){
+            if(ec.keys[i] == aliasName){
+                pos = i;
+                break;
+            }
+        }
+        ec.keys[pos] = ec.keys[ec.keys.length-1];
+        ec.keys.pop();
+    }
+
+    function deactivateAll(bytes32 node) public onlyNodeOwner(node){
+        EASConfig storage ec = configs[node];
+        for(uint256 i=0;i<ec.keys.length;i++){
+            delete ec.forwards[ec.keys[i]];
+        }
+        delete ec.keys;
+        delete ec.publicAliases;
+        ec.numAlias = 0;
     }
 
     function setPublicAliases(bytes32 node, string[] memory aliases) public onlyNodeOwner(node){
@@ -77,7 +110,7 @@ contract EAS is Ownable {
     }
 
     function verify(bytes32 node, bytes32 msgHash, string calldata aliasName, string calldata forwardAddress, bytes calldata sig) external view {
-        bytes32 commitment = configs[node].forwardConfigs[keccak256(bytes(aliasName))];
+        bytes32 commitment = configs[node].forwards[keccak256(bytes(aliasName))];
         address signer = ecrecover(msgHash, uint8(sig[65]), bytes32(sig[0:32]), bytes32(sig[32:64]));
         require(signer == dc.nameRecords(node).renter, "EAS: signature mismatch");
         bytes32 computedCommitment = keccak256(bytes.concat(bytes(aliasName), SEPARATOR, bytes(forwardAddress), SEPARATOR, sig));

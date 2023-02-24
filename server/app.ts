@@ -11,6 +11,7 @@ import * as bodyParser from 'body-parser'
 import * as https from 'https'
 import * as http from 'http'
 import * as fs from 'fs'
+import { initRedis } from './src/redis'
 
 dotenv.config()
 
@@ -21,6 +22,13 @@ app.locals.ENV = env
 app.locals.ENV_DEVELOPMENT = env === 'development'
 
 app.set('trust proxy', true)
+
+initRedis().then(() => {
+  console.log('Initialized Redis')
+}).catch(() => {
+  console.log('Can\'t init Redis')
+  process.exit(1)
+})
 
 let httpServer
 

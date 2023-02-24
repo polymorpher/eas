@@ -3,13 +3,13 @@ dotenv.config()
 
 const DEBUG = process.env.SERVER_DEBUG === 'true' || process.env.SERVER_DEBUG === '1'
 const config = {
+  TLD: process.env.TLD ?? 'country',
   debug: DEBUG,
-  provider: process.env.PROVIDER,
-  dcContract: process.env.DC_CONTRACT,
-  easContract: process.env.EAS_CONTRACT,
+  provider: process.env.PROVIDER ?? '',
+  easContract: process.env.EAS_CONTRACT ?? '',
   improvMX: {
     apiRoot: process.env.IMPROV_MX_API_ROOT,
-    mx: JSON.parse(process.env.IMPROV_MX_DNS_RECORDS ?? '[]')
+    mx: JSON.parse(process.env.IMPROV_MX_DNS_RECORDS ?? '[]') as string[]
   },
   verbose: process.env.VERBOSE === 'true' || process.env.VERBOSE === '1',
   https: {
@@ -20,6 +20,9 @@ const config = {
   corsOrigins: process.env.CORS ?? '',
 
   // redis[s]://[[username][:password]@][host][:port][/db-number]
-  redis: { url: process.env.REDIS_URL }
+  redis: { url: process.env.REDIS_URL },
+  message (sld, alias, forwardAddress): string {
+    return `You are about to authorize forwarding all emails sent to [${alias}@${sld}.${config.TLD}] to [${forwardAddress} instead]`
+  }
 }
 export default config

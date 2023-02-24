@@ -2,6 +2,7 @@ import express from 'express'
 import { StatusCodes } from 'http-status-codes'
 import { body } from 'express-validator'
 import rateLimit from 'express-rate-limit'
+import { verifySignature, verifyCommitment } from '../src/eas-contract'
 // import appConfig from '../config'
 
 const router = express.Router()
@@ -25,8 +26,15 @@ router.post('/activate',
   body('forwardAddress').isEmail().trim().matches(/0x[a-fA-F0-9]+/),
   body('signature').isLength({ min: 132, max: 132 }).trim().matches(/0x[a-fA-F0-9]+/),
   async (req, res) => {
-    const { sld } = req.body
-
+    const { alias, sld, forwardAddress, signature } = req.body
+    const validSignature = await verifySignature({ signature, sld, alias, forwardAddress })
+    if (!validSignature) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({ error: 'invalid signature' })
+    }
+    const validCommitment = await verifyCommitment({ alias, sld, forwardAddress, signature })
+    if (!validCommitment.success) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({ error: 'commitment mismatch', ...validCommitment })
+    }
     try {
     // TODO
       res.json({ })
