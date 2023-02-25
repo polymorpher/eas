@@ -33,12 +33,12 @@ export async function verifyCommitment ({ signature, sld, alias, forwardAddress 
   return { success: expectedCommitment === actualCommitment, actualCommitment, expectedCommitment }
 }
 
-export async function verifyDeactivation ({ sld, alias }): Promise<boolean> {
+export async function verifyDeactivation (sld: string, alias: string): Promise<boolean> {
   const c = await eas.getCommitment(ethers.utils.id(sld), ethers.utils.id(alias))
   return ethers.BigNumber.from(c).eq(0)
 }
 
-export async function isAllDeactivated ({ sld }): Promise<boolean> {
+export async function isAllDeactivated (sld: string): Promise<boolean> {
   const r = await eas.getNumAlias(ethers.utils.id(sld))
   return r.eq(0)
 }

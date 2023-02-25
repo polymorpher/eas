@@ -1,7 +1,7 @@
-import { getDomain, addDomain, addAlias, deleteAlias } from './eas-improvmx'
+import { getDomain, addDomain, addAlias, deleteAlias, listAlias } from './eas-improvmx'
 import { redisClient } from './redis'
 import config from '../config'
-
+import promiseLimit from 'promise-limit'
 export async function initializeDNS (sld: string): Promise<void> {
   const key = `${sld}.${config.TLD}.`
   const rootRecord = await redisClient.hGet(key, '@')
@@ -39,7 +39,9 @@ export async function deactivate (sld: string, alias: string): Promise<void> {
   console.log(res)
 }
 
+const plimiter = promiseLimit(5)
 export async function deactivateAll (sld: string): Promise<void> {
-  // const aliases =
-  // TODO
+  const entries = await listAlias(sld)
+  const aliases = entries.map(e => e.alias)
+  await Promise.all(aliases.map(async (a) => await plimiter(async () => { await deactivate(sld, a) })))
 }
