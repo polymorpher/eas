@@ -1,7 +1,11 @@
 import axios, { type AxiosError } from 'axios'
 import config from '../config'
 
-const base = axios.create({ baseURL: config.improvMX.apiRoot, timeout: 10000 })
+const base = axios.create({
+  baseURL: config.improvMX.apiRoot,
+  timeout: 10000,
+  headers: { Authorization: `Basic api:${config.improvMX.apiRoot}` }
+})
 
 export async function addDomain (sld: string, notificationEmail?: string): Promise<any> {
   const { data } = await base.post('/domains', { domain: `${sld}.${config.TLD}`, notification_email: notificationEmail })
