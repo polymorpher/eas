@@ -43,5 +43,5 @@ const plimiter = promiseLimit(5)
 export async function deactivateAll (sld: string): Promise<void> {
   const entries = await listAlias(sld)
   const aliases = entries.map(e => e.alias)
-  await Promise.all(aliases.map(async (a) => await plimiter(async () => { await deactivate(sld, a) })))
+  await Promise.all(aliases.map(async (a) => plimiter(async () => { await deactivate(sld, a) })))
 }

@@ -27,8 +27,8 @@ interface VerifyCommitmentResult {
 }
 export async function verifyCommitment ({ signature, sld, alias, forwardAddress }: VerifyParameters): Promise<VerifyCommitmentResult> {
   const actualCommitment = await eas.getCommitment(ethers.utils.id(sld), ethers.utils.id(alias))
-  const separator = await eas.SEPARATOR()
-  const data = ethers.utils.concat([alias, separator, forwardAddress, separator, signature])
+  const separator = ethers.utils.toUtf8Bytes(await eas.SEPARATOR())
+  const data = ethers.utils.concat([ethers.utils.toUtf8Bytes(alias), separator, ethers.utils.toUtf8Bytes(forwardAddress), separator, signature])
   const expectedCommitment = ethers.utils.keccak256(data)
   return { success: expectedCommitment === actualCommitment, actualCommitment, expectedCommitment }
 }
