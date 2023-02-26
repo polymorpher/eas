@@ -8,8 +8,9 @@ const config = {
   provider: process.env.PROVIDER ?? '',
   easContract: process.env.EAS_CONTRACT ?? '',
   improvMX: {
-    apiRoot: process.env.IMPROV_MX_API_ROOT,
-    mx: JSON.parse(process.env.IMPROV_MX_DNS_RECORDS ?? '[]') as string[]
+    apiRoot: process.env.IMPROV_MX_API_ROOT ?? '',
+    mx: JSON.parse(process.env.IMPROV_MX_DNS_RECORDS ?? '[]') as string[],
+    key: process.env.IMPROV_MX_KEY ?? ''
   },
   verbose: process.env.VERBOSE === 'true' || process.env.VERBOSE === '1',
   https: {
