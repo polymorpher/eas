@@ -6,7 +6,10 @@ const config = {
   explorer: process.env.EXPLORER_URL ?? 'https://explorer.harmony.one/#/tx/{{txId}}',
   defaultRpc: process.env.DEFAULT_RPC ?? 'https://api.harmony.one',
   easServer: process.env.EAS_SERVER ?? 'https://1ns-eas.hiddenstate.xyz',
-  tld: process.env.TLD ?? 'country'
+  tld: process.env.TLD ?? 'country',
+  message (sld, alias, forwardAddress): string {
+    return `You are about to authorize forwarding all emails sent to [${alias}@${sld}.${config.tld}] to [${forwardAddress} instead]`
+  }
 }
 
 export default config

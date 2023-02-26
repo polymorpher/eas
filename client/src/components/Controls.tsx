@@ -41,11 +41,11 @@ export const Input = styled.input`
   margin-top: ${props => props.$marginTop || props.$margin || '32px'};
   margin-bottom: ${props => props.$marginBottom || props.$margin || '32px'};
   border: none;
-  border-bottom: 1px solid black;
+  border-bottom: ${props => props.$borderless ? 'none' : '1px solid black'};
   font-size: 16px;
   padding: 4px;
   &:hover{
-    border-bottom: 1px solid black;
+    border-bottom: ${props => props.$borderless ? 'none' : '1px solid black'};
   }
   &:disabled{
     color: grey;
