@@ -5,13 +5,14 @@ import { ethers } from 'ethers'
 import config from '../config'
 import { Button, Input, LinkWrarpper } from './components/Controls'
 import { BaseText, Desc, DescLeft, SmallText, Title, FloatingText } from './components/Text'
-import { Col, FlexRow, Main, Row } from './components/Layout'
+import { Col, FlexColumn, FlexRow, Main, Row } from './components/Layout'
 import styled from 'styled-components'
 import humanizeDuration from 'humanize-duration'
 import { toast } from 'react-toastify'
 import { buildClient, type Client, apis } from './api'
 import BN from 'bn.js'
 import { TailSpin } from 'react-loading-icons'
+import { Feedback } from './components/Misc'
 
 const humanD = humanizeDuration.humanizer({ round: true, largest: 1 })
 
@@ -104,10 +105,11 @@ const Home: React.FC = ({ subdomain: string = config.tld }) => {
   }
   return (
     <Container>
-      <FlexRow style={{ alignItems: 'baseline', marginTop: 120 }}>
-        <Title style={{ margin: 0 }}>Email Alias Service</Title>
-      </FlexRow>
-      <DescLeft>
+      <FlexColumn style={{ alignItems: 'center', marginTop: 120, gap: 16 }}>
+        <Title style={{ margin: 0 }}>{sld}.{config.tld}</Title>
+        <SmallTextGrey>Email Alias Service (EAS)</SmallTextGrey>
+      </FlexColumn>
+      <Desc>
         {publicAliases.length > 0 && (<>
           <BaseText>You can reach the domain owner at:</BaseText>
           {publicAliases.map(a => {
@@ -119,12 +121,18 @@ const Home: React.FC = ({ subdomain: string = config.tld }) => {
           The domain owner chose not to disclose any email address. Please ask the owner for more information.
         </BaseText>
         )}
-        <BaseText style={{ marginTop: 16 }}>Bugs or suggestions?</BaseText>
-        <BaseText>- Please create an issue on <a href='https://github.com/harmony-one/eas' target='_blank' rel='noreferrer'>GitHub</a></BaseText>
-      </DescLeft>
-      <BaseText>Own this domain? Connect your wallet to setup emails.</BaseText>
-      <Button onClick={connect} style={{ width: 'auto' }}>CONNECT WALLET</Button>
+        {numAlias === 0 && (
+        <BaseText>
+          The domain owner has not activated any email
+        </BaseText>
+        )}
+
+      </Desc>
+      <SmallText>Own this domain? Connect your wallet to setup emails.</SmallText>
+      {!isConnected && <Button onClick={connect} style={{ width: 'auto' }}>CONNECT WALLET</Button>}
       {isOwner && <BaseText>You are owner!</BaseText>}
+      <div style={{ height: 320 }}/>
+      <Feedback/>
     </Container>)
 }
 

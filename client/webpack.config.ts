@@ -67,7 +67,7 @@ module.exports = {
     ]
   },
   entry: { main: ['./src/index.tsx'] },
-  devtool: process.env.DEBUG === 'true' ? 'source-map' : undefined,
+  devtool: process.env.DEBUG ? 'source-map' : undefined,
   output: {
     filename: '[name].js',
     path: path.resolve(__dirname, 'dist'),
