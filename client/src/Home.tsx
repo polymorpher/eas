@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
+import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi'
+import { InjectedConnector } from 'wagmi/connectors/injected'
 import { ethers } from 'ethers'
-import detectEthereumProvider from '@metamask/detect-provider'
 import config from '../config'
 import { Button, Input, LinkWrarpper } from './components/Controls'
 import { BaseText, Desc, DescLeft, SmallText, Title, FloatingText } from './components/Text'
@@ -8,7 +9,7 @@ import { Col, FlexRow, Main, Row } from './components/Layout'
 import styled from 'styled-components'
 import humanizeDuration from 'humanize-duration'
 import { toast } from 'react-toastify'
-import { activate, buildClient, deactivate, deactivateAll } from './api'
+import { buildClient, type Client, apis } from './api'
 import BN from 'bn.js'
 import { TailSpin } from 'react-loading-icons'
 
@@ -36,9 +37,9 @@ const DescResponsive = styled(Desc)`
   }
 `
 
-const getSld = (): string | null => {
+const getSld = (): string => {
   if (!window) {
-    return null
+    return ''
   }
   const host = window.location.host
   const parts = host.split('.')
@@ -52,187 +53,79 @@ const getSld = (): string | null => {
 }
 
 const Home: React.FC = ({ subdomain: string = config.tld }) => {
-  const [web3, setWeb3] = useState(new Web3(config.defaultRPC))
-  const [address, setAddress] = useState('')
-  const [client, setClient] = useState(buildClient())
+  const { address, isConnected } = useAccount()
+  const provider = useProvider()
+  const [expirationTime, setExpirationTime] = useState(0)
+  const [publicAliases, setPublicAliases] = useState([])
+  const [numAlias, setNumAlias] = useState(0)
+  const [owner, setOwner] = useState('')
+  const [client, setClient] = useState<Client | undefined>()
 
-  // for updating stuff
-  const [url, setUrl] = useState('')
-  const [sld, setSld] = useState('')
+  const { connect } = useConnect({ connector: new InjectedConnector() })
+  const { disconnect } = useDisconnect()
 
-  const expired = record?.expirationTime - Date.now() < 0
+  const sld = getSld()
+  console.log('sld', sld)
 
-  if (name === '' || name === 'names') {
-    return (
-            <Container>
-                {lastRentedRecord &&
-                  <Banner>
-                    <Row style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
-                      <SmallTextGrey>last purchase</SmallTextGrey>
-                      <a
-                        href={`https://${parameters.lastRented}${config.tld}`} target='_blank' rel='noreferrer'
-                        style={{ color: 'grey', textDecoration: 'none' }}
-                      ><BaseText>{parameters.lastRented}{config.tld}</BaseText>
-                      </a> <BaseText>({lastRentedRecord.lastPrice.formatted} ONE)</BaseText>
-                    </Row>
-                  </Banner>}
-                <FlexRow style={{ alignItems: 'baseline', marginTop: 120 }}>
-                    <Title style={{ margin: 0 }}>Get your web3+2 domain ({subdomain})</Title>
-                </FlexRow>
-                <DescLeft>
-                    <BaseText>How it works:</BaseText>
-                    <BaseText>- Here (<a href={`https://${config.tldHub}`}>{config.tldHub}</a>), you can rent a {config.tld} domain </BaseText>
-                    <BaseText>- You can trade it as NFT, use it in ENS, wallets, and other web3 services</BaseText>
-                    <BaseText>- It also works in browser! This domain is backward compatible with web2 </BaseText>
-                    <BaseText>- Later, you can setup a simple website on the domain, configure DNS, and do many things no one in web3 has done before</BaseText>
-                    <BaseText>- example: <a href={`https://${config.tldExample}`} target='_blank' rel='noreferrer'>{config.tldExample}</a></BaseText>
-                    <BaseText style={{ marginTop: 16 }}>Bugs or suggestions?</BaseText>
-                    <BaseText>- Please create an issue on <a href='https://github.com/harmony-one/dot-country' target='_blank' rel='noreferrer'>GitHub</a></BaseText>
-                </DescLeft>
-                {!address && <Button onClick={connect} style={{ width: 'auto' }}>CONNECT METAMASK</Button>}
-                {address &&
-                  <Col style={{ alignItems: 'center' }}>
-                    <Title>Rent a domain now</Title>
-                    <Row style={{ width: '100%', gap: 0, justifyContent: 'center' }}>
-                      <Input $width='128px' $margin='8px' value={sld} onChange={({ target: { value } }) => setSld(value)} />
-                      <SmallTextGrey>.country</SmallTextGrey>
-                    </Row>
-                    <SmallTextGrey style={{ marginTop: 32, textAlign: 'center' }}>Which tweet do you showcase in your domain?</SmallTextGrey>
-                    <Row style={{ width: '100%', gap: 0, position: 'relative' }}>
-                      <Input $width='100%' $margin='8px' value={url} onChange={({ target: { value } }) => setUrl(value)} />
-                      <FloatingText>copy the tweet's URL</FloatingText>
-                    </Row>
-                      {checkingAvailability && (
-                          <Row style={{ alignItems: 'center', width: '100%', justifyContent: 'center' }}>
-                              <TailSpin stroke='grey' width={16} />
-                              <BaseText> Checking domain price and availability...</BaseText>
-                          </Row>)}
-                      {!checkingAvailability && isDomainAvailable === true && <BaseText>✅ Domain is available</BaseText>}
-                      {!checkingAvailability && isDomainAvailable === false && <BaseText>❌ Domain unavailable</BaseText>}
-                      {!regTxHash && !web2Acquired && <Button onClick={onRent} disabled={pending || !isDomainAvailable || checkingAvailability}>RENT</Button>}
-                      {regTxHash && !web2Acquired && <Button onClick={claimWeb2DomainWrapper} disabled={pending}>TRY AGAIN</Button>}
-                      {web2Acquired && <BaseText>Your domain is ready! Checkout <a target='_blank' href={`http://${sld}${config.tld}`} rel='noreferrer'>{sld}{config.tld}</a></BaseText>}
-                      {price !== null && !web2Acquired && (
-                          <Col>
-                              <Row style={{ marginTop: 32, justifyContent: 'center' }}>
-                                  <Label>price</Label><BaseText>{price?.formatted} ONE</BaseText>
-                              </Row>
-                              <Row style={{ justifyContent: 'center' }}>
-                                  <SmallTextGrey>for {humanD(parameters.duration)} </SmallTextGrey>
-                              </Row>
-                          </Col>)}
-                  </Col>}
-            </Container>
-    )
+  useEffect(() => {
+    buildClient().then(c => setClient(c))
+      .catch(ex => { console.error(ex) })
+  }, [])
+
+  useEffect(() => {
+    console.log('provider is now', provider)
+    if (!provider) {
+      return
+    }
+    buildClient(provider).then(c => setClient(c))
+      .catch(ex => { console.error(ex) })
+  }, [provider])
+
+  useEffect(() => {
+    if (!isConnected || !address || !client || !sld) {
+      return
+    }
+    client.getOwner(sld).then(e => setOwner(e))
+    client.getExpirationTime(sld).then(e => setExpirationTime(e))
+    client.getPublicAliases(sld).then(e => setPublicAliases(e))
+    client.getNumAlias(sld).then(e => setNumAlias(e))
+  }, [isConnected, address, client, sld])
+
+  const expired = expirationTime > 0 && (expirationTime - Date.now() < 0)
+
+  const isOwner = address && address.toLowerCase() === owner.toLowerCase()
+
+  if (expired) {
+    return <Container>
+      <FlexRow style={{ alignItems: 'baseline', marginTop: 120 }}>
+        <Title>This domain has expired</Title>
+      </FlexRow>
+    </Container>
   }
-
   return (
-        <Container>
-            {lastRentedRecord &&
-              <Banner>
-                <Row style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <SmallTextGrey>last purchase</SmallTextGrey>
-                  <a
-                    href={`https://${parameters.lastRented}${config.tld}`} target='_blank' rel='noreferrer'
-                    style={{ color: 'grey', textDecoration: 'none' }}
-                  >
-                    <BaseText>{parameters.lastRented}{config.tld}</BaseText>
-                  </a> <BaseText>({lastRentedRecord.lastPrice.formatted} ONE)</BaseText>
-                </Row>
-              </Banner>}
-            <FlexRow style={{ alignItems: 'baseline', marginTop: 120 }}>
-                <Title style={{ margin: 0 }}>{name}</Title>
-                <a href={`https://${config.tldHub}`} target='_blank' rel='noreferrer' style={{ textDecoration: 'none' }}>
-                    <BaseText style={{ fontSize: 12, color: 'grey', marginLeft: '16px', textDecoration: 'none' }}>
-                        {subdomain}
-                    </BaseText>
-                </a>
-            </FlexRow>
-            {record?.renter &&
-              <DescResponsive style={{ marginTop: 16 }}>
-                <Row style={{ justifyContent: 'space-between' }}>
-
-                    {record.prev
-                      ? (
-                            <a href={`https://${record.prev}${config.tld}`} target='_blank' rel='noreferrer' style={{ textDecoration: 'none' }}>
-                                <FlexRow style={{ gap: 16 }}>
-                                    <SmallTextGrey>{'<'} prev</SmallTextGrey><SmallTextGrey>{record.prev}{config.tld}</SmallTextGrey>
-                                </FlexRow>
-                            </a>)
-                      : (<BaseText> </BaseText>)}
-
-                    {record.next &&
-                      <a href={`https://${record.next}${config.tld}`} target='_blank' rel='noreferrer' style={{ textDecoration: 'none' }}>
-                        <FlexRow style={{ gap: 16 }}>
-                          <SmallTextGrey>{record.next}{config.tld}</SmallTextGrey> <SmallTextGrey> next {'>'}</SmallTextGrey>
-                        </FlexRow>
-                      </a>}
-                </Row>
-                <Row style={{ marginTop: 16 }}>
-                  <Label>owned by</Label><BaseText style={{ wordBreak: 'break-word' }}>{record.renter}</BaseText>
-                </Row>
-                <Row>
-                  <Label>purchased on</Label>
-                  <BaseText> {new Date(record.rentTime).toLocaleString()}</BaseText>
-                </Row>
-                <Row>
-                  <Label>expires on</Label>
-                  <BaseText> {new Date(record.expirationTime).toLocaleString()}</BaseText>
-                    {!expired && <SmallTextGrey>(in {humanD(record.expirationTime - Date.now())})</SmallTextGrey>}
-                    {expired && <SmallText style={{ color: 'red' }}>(expired)</SmallText>}
-                </Row>
-                  {tweetId &&
-                    <TweetContainerRow>
-                      <TwitterTweetEmbed tweetId={tweetId} />
-                    </TweetContainerRow>}
-                <Row style={{ marginTop: 32, justifyContent: 'center' }}>
-                    {record.url && !tweetId &&
-                      <Col>
-                        <BaseText>Owner embedded an unsupported link:</BaseText>
-                        <SmallTextGrey> {record.url}</SmallTextGrey>
-                      </Col>}
-                    {!record.url &&
-                      <BaseText>Owner hasn't embedded any tweet yet</BaseText>}
-                </Row>
-                  {!isOwner
-                    ? (
-                          <>
-                              <Title style={{ marginTop: 32, textAlign: 'center' }}>
-                                  This domain is already taken
-                              </Title>
-                              <BaseText>Get your own at <a href={`https://${config.tldHub}`} target='_blank' rel='noreferrer'>{config.tldHub}</a></BaseText>
-                          </>)
-                    : (
-                          <Title style={{ marginTop: 32, textAlign: 'center' }}>
-                              You own this page
-                          </Title>)}
-
-              </DescResponsive>}
-
-            {!address && isOwner && <Button onClick={connect} style={{ width: 'auto' }}>CONNECT METAMASK</Button>}
-
-            {address && isOwner && (
-                <>
-                    <SmallTextGrey style={{ marginTop: 32 }}>Which tweet do you want this page to embed?</SmallTextGrey>
-                    <Row style={{ width: '80%', gap: 0, position: 'relative' }}>
-                        <Input $width='100%' $margin='8px' value={url} onChange={({ target: { value } }) => setUrl(value)} />
-                        <FloatingText>copy the tweet's URL</FloatingText>
-                    </Row>
-                    <Button onClick={onUpdateUrl} disabled={pending}>UPDATE URL</Button>
-                    <Title style={{ marginTop: 64 }}>Renew ownership</Title>
-                    <Row style={{ justifyContent: 'center' }}>
-                        <Label>renewal price</Label><BaseText>{price?.formatted} ONE</BaseText>
-                    </Row>
-                    <SmallTextGrey>for {humanD(parameters.duration)} </SmallTextGrey>
-                    <Button onClick={() => ({})} disabled>RENEW</Button>
-                    <SmallTextGrey>*Renewal is disabled at this time. It will be re-enabled in the coming months.</SmallTextGrey>
-                    <SmallTextGrey>Your address: {address}</SmallTextGrey>
-                </>
-            )}
-            <SmallTextGrey>Learn more about the future of domain name services: <a href='https://harmony.one/domains' target='_blank' rel='noreferrer'>RADICAL Market for Internet Domains</a></SmallTextGrey>
-            <div style={{ height: 200 }} />
-        </Container>
-  )
+    <Container>
+      <FlexRow style={{ alignItems: 'baseline', marginTop: 120 }}>
+        <Title style={{ margin: 0 }}>Email Alias Service</Title>
+      </FlexRow>
+      <DescLeft>
+        {publicAliases.length > 0 && (<>
+          <BaseText>You can reach the domain owner at:</BaseText>
+          {publicAliases.map(a => {
+            return <BaseText key={a}>{a}@{sld}{config.tld}</BaseText>
+          })}
+        </>)}
+        {numAlias > 0 && publicAliases.length === 0 && (
+        <BaseText>
+          The domain owner chose not to disclose any email address. Please ask the owner for more information.
+        </BaseText>
+        )}
+        <BaseText style={{ marginTop: 16 }}>Bugs or suggestions?</BaseText>
+        <BaseText>- Please create an issue on <a href='https://github.com/harmony-one/eas' target='_blank' rel='noreferrer'>GitHub</a></BaseText>
+      </DescLeft>
+      <BaseText>Own this domain? Connect your wallet to setup emails.</BaseText>
+      <Button onClick={connect} style={{ width: 'auto' }}>CONNECT WALLET</Button>
+      {isOwner && <BaseText>You are owner!</BaseText>}
+    </Container>)
 }
 
 export default Home

@@ -6,20 +6,7 @@ const config = {
   explorer: process.env.EXPLORER_URL ?? 'https://explorer.harmony.one/#/tx/{{txId}}',
   defaultRpc: process.env.DEFAULT_RPC ?? 'https://api.harmony.one',
   easServer: process.env.EAS_SERVER ?? 'https://1ns-eas.hiddenstate.xyz',
-  tld: process.env.TLD ?? 'country',
-  chainParameters: process.env.CHAIN_PARAMETERS
-    ? JSON.parse(process.env.CHAIN_PARAMETERS)
-    : {
-        chainId: '0x63564C40', // A 0x-prefixed hexadecimal string
-        chainName: 'Harmony Mainnet Shard 0',
-        nativeCurrency: {
-          name: 'ONE',
-          symbol: 'ONE',
-          decimals: 18
-        },
-        rpcUrls: ['https://api.harmony.one'],
-        blockExplorerUrls: ['https://explorer.harmony.one/']
-      }
+  tld: process.env.TLD ?? 'country'
 }
 
 export default config

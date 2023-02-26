@@ -4,12 +4,21 @@ import { createRoot } from 'react-dom/client'
 import Routes from './Routes'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import { WagmiConfig, createClient } from 'wagmi'
-import { getDefaultProvider } from 'ethers'
+import { WagmiConfig, createClient, configureChains } from 'wagmi'
+import { harmonyOne } from '@wagmi/core/chains'
+import { jsonRpcProvider } from '@wagmi/core/providers/jsonRpc'
+import config from '../config'
+import { InjectedConnector } from 'wagmi/connectors/injected'
+
+const { chains, provider } = configureChains(
+  [harmonyOne],
+  [jsonRpcProvider({ rpc: () => ({ http: config.defaultRpc }) })]
+)
 
 const client = createClient({
   autoConnect: true,
-  provider: getDefaultProvider()
+  connectors: [new InjectedConnector({ chains })],
+  provider
 })
 
 const container = document.getElementById('root')

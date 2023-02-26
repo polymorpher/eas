@@ -63,6 +63,11 @@
         "internalType": "bytes32",
         "name": "commitment",
         "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "publicAlias",
+        "type": "string"
       }
     ],
     "name": "activate",

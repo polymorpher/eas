@@ -21,17 +21,19 @@ export const apis = {
   }
 }
 
-interface Client {
+export interface Client {
   eas: EAS
   dc: IDC
   getOwner: (sld: string) => Promise<string>
+  getExpirationTime: (sld: string) => Promise<number>
+  getNumAlias: (sld: string) => Promise<number>
   getPublicAliases: (sld: string) => Promise<string[]>
-  activate: (sld: string, alias: string, commitment: string) => Promise<void>
+  activate: (sld: string, alias: string, commitment: string, makePublic: boolean) => Promise<void>
   deactivate: (sld: string, alias: string) => Promise<void>
   deactivateAll: (sld: string) => Promise<void>
 
 }
-export const buildClient = async (provider?: ExternalProvider): Promise<Client> => {
+export const buildClient = async (provider?): Promise<Client> => {
   const etherProvider = provider ? new ethers.providers.Web3Provider(provider) : new ethers.providers.JsonRpcProvider(config.defaultRpc)
   const eas = new ethers.Contract(config.easContract, EASAbi, etherProvider) as EAS
   const dcAddress = await eas.dc()
@@ -43,11 +45,19 @@ export const buildClient = async (provider?: ExternalProvider): Promise<Client> 
       const r = await dc.nameRecords(ethers.utils.id(sld))
       return r.renter
     },
+    getExpirationTime: async (sld: string) => {
+      const r = await dc.nameRecords(ethers.utils.id(sld))
+      return r.expirationTime.toNumber()
+    },
     getPublicAliases: async (sld: string) => {
       return await eas.getPublicAliases(ethers.utils.id(sld))
     },
-    activate: async (sld: string, alias: string, commitment: string) => {
-      await eas.activate(ethers.utils.id(sld), ethers.utils.id(alias), commitment)
+    getNumAlias: async (sld: string) => {
+      const r = await eas.getNumAlias(ethers.utils.id(sld))
+      return r.toNumber()
+    },
+    activate: async (sld: string, alias: string, commitment: string, makePublic: boolean) => {
+      await eas.activate(ethers.utils.id(sld), ethers.utils.id(alias), commitment, makePublic ? alias : '')
     },
     deactivate: async (sld: string, alias: string) => {
       await eas.deactivate(ethers.utils.id(sld), ethers.utils.id(alias))
