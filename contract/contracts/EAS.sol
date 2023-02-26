@@ -4,19 +4,9 @@ pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-// TODO - add an owner-verification function in DC contract
+// TODO - add an owner-verification and expiration getter function in DC contract
 interface IDC {
-    struct NameRecord {
-        address renter;
-        uint256 rentTime;
-        uint256 expirationTime;
-        uint256 lastPrice;
-        string url; // this one should be pinned on top
-        string prev;
-        string next;
-    }
-
-    function nameRecords(bytes32 node) external view returns (NameRecord memory);
+    function nameRecords(bytes32 node) external view returns (address, uint256, uint256, uint256, string memory, string memory, string memory);
 }
 
 contract EAS is Ownable {
@@ -64,8 +54,9 @@ contract EAS is Ownable {
     }
 
     modifier onlyNodeOwner(bytes32 node){
-        require(dc.nameRecords(node).renter == msg.sender, "EAS: not domain owner");
-        require(dc.nameRecords(node).expirationTime > block.timestamp, "EAS: domain expired");
+        (address renter,,uint256 expirationTime,,,,) = dc.nameRecords(node);
+        require(renter == msg.sender, "EAS: not domain owner");
+        require(expirationTime > block.timestamp, "EAS: domain expired");
         _;
     }
 
@@ -113,9 +104,10 @@ contract EAS is Ownable {
     }
 
     function verify(bytes32 node, bytes32 msgHash, string calldata aliasName, string calldata forwardAddress, bytes calldata sig) external view {
+        (address renter,,,,,,) = dc.nameRecords(node);
         bytes32 commitment = configs[node].forwards[keccak256(bytes(aliasName))];
         address signer = ecrecover(msgHash, uint8(sig[65]), bytes32(sig[0 : 32]), bytes32(sig[32 : 64]));
-        require(signer == dc.nameRecords(node).renter, "EAS: signature mismatch");
+        require(signer == renter, "EAS: signature mismatch");
         bytes32 computedCommitment = keccak256(bytes.concat(bytes(aliasName), SEPARATOR, bytes(forwardAddress), SEPARATOR, sig));
         require(commitment == computedCommitment, "EAS: commitment mismatch");
     }

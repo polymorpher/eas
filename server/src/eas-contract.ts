@@ -1,5 +1,5 @@
-import EASAbi from './abi/EAS.json'
-import IDCAbi from './abi/IDC.json'
+import EASAbi from '../../contract/abi/EAS.json'
+import IDCAbi from '../../contract/abi/IDC.json'
 import config from '../config'
 import { ethers } from 'ethers'
 import { type EAS, type IDC } from '../../contract/typechain-types'
@@ -17,7 +17,7 @@ export async function getOwner (sld: string): Promise<string> {
   const dc = new ethers.Contract(dcAddress, IDCAbi, provider) as IDC
   const node = ethers.utils.id(sld)
   const r = await dc.nameRecords(node)
-  return r.renter.toLowerCase()
+  return r[0].toLowerCase()
 }
 
 interface VerifyCommitmentResult {
