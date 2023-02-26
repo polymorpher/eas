@@ -24,7 +24,7 @@ router.post('/activate',
   limiter(),
   body('alias').isLength({ min: 1, max: 32 }).trim().matches(/[a-zA-Z0-9._-]+/),
   body('sld').isLength({ min: 1, max: 32 }).trim().matches(/[a-z0-9-]+/),
-  body('forwardAddress').isEmail().trim().matches(/0x[a-fA-F0-9]+/),
+  body('forwardAddress').isEmail().trim().matches(/[+a-zA-Z0-9._-]+/),
   body('signature').isLength({ min: 132, max: 132 }).trim().matches(/0x[a-fA-F0-9]+/),
   async (req, res) => {
     const { alias, sld, forwardAddress, signature } = req.body
