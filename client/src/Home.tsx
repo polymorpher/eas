@@ -75,6 +75,7 @@ const Home: React.FC = ({ subdomain: string = config.tld }) => {
   const [owner, setOwner] = useState('')
   const [aliases, setAliases] = useState([])
   const [newAlias, setNewAlias] = useState('')
+  const [isNewAliasInUse, setIsNewAliasInUse] = useState(false)
   const [forwards, setForwards] = useState([])
   const [newForward, setNewForward] = useState('')
   const [newMakePublic, setNewMakePublic] = useState(true)
@@ -85,6 +86,9 @@ const Home: React.FC = ({ subdomain: string = config.tld }) => {
   const { disconnect } = useDisconnect()
 
   const sld = getSld()
+
+  // const isNewAliasInUse = newAlias &&
+
   console.log('sld', sld)
 
   useEffect(() => {
@@ -96,14 +100,22 @@ const Home: React.FC = ({ subdomain: string = config.tld }) => {
   }, [provider, signer])
 
   useEffect(() => {
-    if (!isConnected || !address || !client || !sld) {
+    if (!client || !sld) {
       return
     }
     client.getOwner(sld).then(e => setOwner(e))
     client.getExpirationTime(sld).then(e => setExpirationTime(e))
     client.getPublicAliases(sld).then(e => setPublicAliases(e))
     client.getNumAlias(sld).then(e => setNumAlias(e))
-  }, [isConnected, address, client, sld])
+  }, [client, sld])
+  useEffect(() => {
+    if (!newAlias || !client || !sld) {
+      return
+    }
+    client.isAliasInUse(sld, newAlias).then(b => {
+      setIsNewAliasInUse(b)
+    })
+  }, [newAlias, client, sld])
 
   const add = async (alias: string, forward: string, makePublic: boolean): Promise<void> => {
     if (!EMAIL_REGEX.test(forward)) {
@@ -187,7 +199,9 @@ const Home: React.FC = ({ subdomain: string = config.tld }) => {
           <SmallTextGrey>@{sld}.{config.tld}</SmallTextGrey>
           <BaseText style={{ whiteSpace: 'nowrap' }}>FORWARD TO</BaseText>
           <InputBox type={'email'} value={newForward} onChange={({ target: { value } }) => setNewForward(value)}/>
-          <Button $width={'auto'} onClick={async () => { await add(newAlias, newForward, newMakePublic) }}>ADD</Button>
+          <Button $width={'auto'} onClick={async () => { await add(newAlias, newForward, newMakePublic) }}>
+            {isNewAliasInUse ? 'UPDATE' : 'ADD'}
+          </Button>
         </FlexRow>
       </Desc>}
       <div style={{ height: 320 }}/>

@@ -39,6 +39,7 @@ export interface Client {
   deactivate: (sld: string, alias: string) => Promise<void>
   deactivateAll: (sld: string) => Promise<void>
   buildSignature: (sld: string, alias: string, forward: string) => Promise<string>
+  isAliasInUse: (sld: string, alias: string) => Promise<boolean>
 
 }
 export const buildClient = (provider?, signer?): Client => {
@@ -82,6 +83,10 @@ export const buildClient = (provider?, signer?): Client => {
     getNumAlias: async (sld: string) => {
       const r = await eas.getNumAlias(ethers.utils.id(sld))
       return r.toNumber()
+    },
+    isAliasInUse: async (sld: string, alias: string) => {
+      const c = await eas.getCommitment(ethers.utils.id(sld), ethers.utils.id(alias))
+      return !ethers.BigNumber.from(c).eq(0)
     },
     activate: async (sld: string, alias: string, commitment: string, makePublic: boolean) => {
       return await eas.activate(ethers.utils.id(sld), ethers.utils.id(alias), commitment, makePublic ? alias : '')
