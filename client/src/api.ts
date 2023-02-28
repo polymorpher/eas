@@ -25,6 +25,11 @@ export const apis = {
   deactivateAll: async function (sld: string): Promise<APIResponse> {
     const { data } = await base.post('/deactivate-all', { sld })
     return data
+  },
+
+  check: async function (sld: string, alias: string): Promise<boolean> {
+    const { data } = await base.post('/check-alias', { sld, alias })
+    return data.exist
   }
 }
 
