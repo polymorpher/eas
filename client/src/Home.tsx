@@ -11,6 +11,7 @@ import { toast } from 'react-toastify'
 import { buildClient, apis } from './api'
 import { TailSpin } from 'react-loading-icons'
 import { Feedback } from './components/Misc'
+import useDebounce from './hooks/useDebounce'
 
 const Container = styled(Main)`
   margin: 0 auto;
@@ -107,7 +108,8 @@ const Home: React.FC = () => {
   const [isPublicAliasesValid, setIsPublicAliasesValid] = useState<AliasValidity[]>([])
   const [numAlias, setNumAlias] = useState(0)
   const [owner, setOwner] = useState('')
-  const [newAlias, setNewAlias] = useState('')
+  const [newAlias, setNewAlias] = useState('hello')
+  const debouncedNewAlias = useDebounce(newAlias, 500)
   const [isNewAliasInUse, setIsNewAliasInUse] = useState(false)
   const [newForward, setNewForward] = useState('')
   const [newMakePublic] = useState(true)
@@ -126,16 +128,13 @@ const Home: React.FC = () => {
     if (!client?.eas?.signer) {
       return
     }
-    async function f (): Promise<void> {
-      const rs = await Promise.all(publicAliases.map(e => client.isAliasInUse(sld, e)))
+    tryCatch(async () => {
+      await Promise.all(publicAliases.map(e => client.isAliasInUse(sld, e))).then(rs => setIsPublicAliasesInUse(rs))
       // TODO: Doesn't work for regex alias. Need to implement a more power API at server to get all aliases and do regex matching on demand
-      const rs2 = await Promise.all(publicAliases.map(async e => await apis.check(sld, e)))
-      const validities = rs2.map(e => e ? AliasValidity.ALIAS_VALIDITY_VALID : AliasValidity.ALIAS_VALIDITY_INVALID)
-      setPending(false)
-      setIsPublicAliasesInUse(rs)
-      setIsPublicAliasesValid(validities)
-    }
-    f().catch(ex => { console.error(ex) })
+      await Promise.all(publicAliases.map(async e => await apis.check(sld, e))).then(rs2 => {
+        setIsPublicAliasesValid(rs2.map(e => e ? AliasValidity.ALIAS_VALIDITY_VALID : AliasValidity.ALIAS_VALIDITY_INVALID))
+      })
+    }).catch(ex => { console.error(ex) })
   }, [sld, publicAliases, client])
 
   useEffect(() => {
@@ -150,21 +149,25 @@ const Home: React.FC = () => {
     if (!client || !sld) {
       return
     }
-    client.getOwner(sld).then(e => setOwner(e))
-    client.getExpirationTime(sld).then(e => setExpirationTime(e))
-    client.getPublicAliases(sld).then(e => setPublicAliases(e))
-    client.getNumAlias(sld).then(e => setNumAlias(e))
+    tryCatch(async () => {
+      return await Promise.all([
+        client.getOwner(sld).then(e => setOwner(e)),
+        client.getExpirationTime(sld).then(e => setExpirationTime(e)),
+        client.getPublicAliases(sld).then(e => setPublicAliases(e)),
+        client.getNumAlias(sld).then(e => setNumAlias(e))
+      ])
+    }).catch(e => { console.error(e) })
   }, [client, sld])
   useEffect(() => {
-    if (!newAlias || !client || !sld) {
+    if (!debouncedNewAlias || !client || !sld) {
       return
     }
-    client.isAliasInUse(sld, newAlias).then(b => {
+    tryCatch(() => client.isAliasInUse(sld, debouncedNewAlias).then(b => {
       setIsNewAliasInUse(b)
-    })
-  }, [newAlias, client, sld])
+    })).catch(e => { console.error(e) })
+  }, [debouncedNewAlias, client, sld])
 
-  const tryCatch = async (f: () => Promise<void>): Promise<void> => {
+  const tryCatch = async (f: () => Promise<any>): Promise<void> => {
     try {
       setPending(true)
       await f()
@@ -244,7 +247,7 @@ const Home: React.FC = () => {
         {publicAliases.length > 0 && (<>
           <BaseText>You can reach the domain owner at:</BaseText>
           {publicAliases.map(a => {
-            return <BaseText key={a}>{a}@{sld}.{config.tld}</BaseText>
+            return <BaseText style={{ background: '#eee', padding: 8 }} key={a}>{a}@{sld}.{config.tld}</BaseText>
           })}
         </>)}
         {numAlias > 0 && publicAliases.length === 0 && (
@@ -252,6 +255,7 @@ const Home: React.FC = () => {
           The domain owner chose not to disclose any email address. Please ask the owner for more information.
         </BaseText>
         )}
+        <SmallTextGrey>owner: {owner}</SmallTextGrey>
         {numAlias === 0 && (
         <BaseText>
           The domain owner has not activated any email
@@ -262,7 +266,7 @@ const Home: React.FC = () => {
       {!isConnected && <SmallText>Own this domain? Connect your wallet to setup emails.</SmallText>}
       {!isConnected && <Button onClick={connect} style={{ width: 'auto' }}>CONNECT WALLET</Button>}
       {isOwner && <Desc>
-        <FlexRow style={{ gap: 16, background: '#eee', padding: 8, alignItems: 'baseline' }}>
+        <FlexRow style={{ gap: 16, background: '#eee', padding: 8, alignItems: 'center' }}>
           <BaseText> + </BaseText>
           <AliasInputBox value={newAlias} onChange={({ target: { value } }) => setNewAlias(value)}/>
           <SmallTextGrey>@{sld}.{config.tld}</SmallTextGrey>
@@ -272,14 +276,28 @@ const Home: React.FC = () => {
             {pending ? <Loading/> : (isNewAliasInUse ? 'UPDATE' : 'ADD')}
           </Button>
         </FlexRow>
+
+        {!pending && numHiddenAliases > 0 && (
+        <BaseText>Plus {numHiddenAliases} more private aliases</BaseText>
+        )}
+
+        {pending && <><Loading/> Loading Email Configurations...</>}
+
         {publicAliases.map((alias: string, i: number) => {
           if (!isPublicAliasesInUse[i]) {
             return <React.Fragment key={`${alias}`}></React.Fragment>
           }
           return (
-            <FlexRow key={alias} style={{ gap: 16, background: '#eee', padding: 8, alignItems: 'baseline', position: 'relative' }}>
+            <FlexRow key={alias} style={{
+              gap: 16,
+              background: '#eee',
+              minHeight: 51,
+              padding: 8,
+              alignItems: 'center',
+              position: 'relative'
+            }}>
               <BaseText> - </BaseText>
-              <AliasInputBox value={alias} disabled />
+              <AliasInputBox style={{ cursor: 'disabled', backgroundColor: '#ccc' }} value={alias} disabled />
               <SmallTextGrey>@{sld}.{config.tld}</SmallTextGrey>
               <BaseText style={{ whiteSpace: 'nowrap' }}>FORWARD TO</BaseText>
               <InputBox placeholder={'****'} type={'email'}
@@ -294,7 +312,7 @@ const Home: React.FC = () => {
                   {pending ? <Loading/> : 'DELETE' }
                 </Button>
               </>}
-              {isPublicAliasesValid[i] === AliasValidity.ALIAS_VALIDITY_UNKNOWN && <>
+              {isPublicAliasesValid[i] === AliasValidity.ALIAS_VALIDITY_UNKNOWN || isPublicAliasesValid[i] === undefined && <>
                 <Loading/>
               </>}
               {isPublicAliasesValid[i] === AliasValidity.ALIAS_VALIDITY_INVALID && <>
@@ -306,9 +324,6 @@ const Home: React.FC = () => {
             </FlexRow>
           )
         })}
-        {numHiddenAliases > 0 && (
-          <BaseText>Plus {numHiddenAliases} more private aliases</BaseText>
-        )}
 
       </Desc>}
       <div style={{ height: 320 }}/>
