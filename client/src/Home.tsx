@@ -1,20 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import { useAccount, useConnect, useDisconnect, useProvider, useSigner } from 'wagmi'
+import { useAccount, useConnect, useProvider, useSigner } from 'wagmi'
 import { InjectedConnector } from 'wagmi/connectors/injected'
 import { ethers } from 'ethers'
 import config from '../config'
 import { Button, Input, LinkWrarpper } from './components/Controls'
-import { BaseText, Desc, DescLeft, SmallText, Title, FloatingText } from './components/Text'
-import { Col, FlexColumn, FlexRow, Main, Row } from './components/Layout'
+import { BaseText, Desc, SmallText, Title } from './components/Text'
+import { FlexColumn, FlexRow, Main } from './components/Layout'
 import styled from 'styled-components'
-import humanizeDuration from 'humanize-duration'
 import { toast } from 'react-toastify'
-import { buildClient, type Client, apis } from './api'
-import BN from 'bn.js'
+import { buildClient, apis } from './api'
 import { TailSpin } from 'react-loading-icons'
 import { Feedback } from './components/Misc'
-
-const humanD = humanizeDuration.humanizer({ round: true, largest: 1 })
 
 const Container = styled(Main)`
   margin: 0 auto;
@@ -23,6 +19,9 @@ const Container = styled(Main)`
   // TODO: responsive
 `
 
+const Loading: React.FC = () => {
+  return <TailSpin stroke='grey' width={16} />
+}
 const SmallTextGrey = styled(SmallText)`
   color: grey;
 `
@@ -66,30 +65,62 @@ const InputBox = styled(Input)`
   }
 `
 
-const Home: React.FC = ({ subdomain: string = config.tld }) => {
+const AliasInputBox = styled(InputBox)`
+  padding-left: 8px;
+  padding-right: 8px;
+  text-align: right;
+`
+
+interface SuccessWithExplorerLinkParameters {
+  message: string
+  txHash: string
+}
+const SuccessWithExplorerLink: React.FC = ({ message, txHash }: SuccessWithExplorerLinkParameters) => {
+  return <FlexColumn style={{ gap: 8 }}>
+    <BaseText>{message}</BaseText>
+    <LinkWrarpper target='_blank' href={config.explorer(txHash)}>
+      <BaseText>View transaction</BaseText>
+    </LinkWrarpper>
+  </FlexColumn>
+}
+
+// TODO: 1. show private aliases after verifying signature;
+//  2. display masked forward emails after verifying signature;
+//  3. button to deactivate all aliases
+//  4. regex and examples
+//  5. explanation about privacy stuff
+const Home: React.FC = () => {
   const { address, isConnected } = useAccount()
   const provider = useProvider()
   const [expirationTime, setExpirationTime] = useState(0)
   const [publicAliases, setPublicAliases] = useState([])
+  const [isPublicAliasesInUse, setIsPublicAliasesInUse] = useState([])
   const [numAlias, setNumAlias] = useState(0)
   const [owner, setOwner] = useState('')
-  const [aliases, setAliases] = useState([])
   const [newAlias, setNewAlias] = useState('')
   const [isNewAliasInUse, setIsNewAliasInUse] = useState(false)
-  const [forwards, setForwards] = useState([])
   const [newForward, setNewForward] = useState('')
-  const [newMakePublic, setNewMakePublic] = useState(true)
+  const [newMakePublic] = useState(true)
   const [client, setClient] = useState(buildClient())
   const { data: signer } = useSigner()
-
   const { connect } = useConnect({ connector: new InjectedConnector() })
-  const { disconnect } = useDisconnect()
+  const [pending, setPending] = useState(false)
 
   const sld = getSld()
-
-  // const isNewAliasInUse = newAlias &&
+  const numHiddenAliases = numAlias - isPublicAliasesInUse.filter(e => e).length
 
   console.log('sld', sld)
+
+  useEffect(() => {
+    if (!client?.eas?.signer) {
+      return
+    }
+    async function f (): Promise<void> {
+      const rs = await Promise.all(publicAliases.map(e => client.isAliasInUse(sld, e)))
+      setIsPublicAliasesInUse(rs)
+    }
+    f().catch(ex => { console.error(ex) })
+  }, [sld, publicAliases, client])
 
   useEffect(() => {
     if (!provider || !signer) {
@@ -117,32 +148,9 @@ const Home: React.FC = ({ subdomain: string = config.tld }) => {
     })
   }, [newAlias, client, sld])
 
-  const add = async (alias: string, forward: string, makePublic: boolean): Promise<void> => {
-    if (!EMAIL_REGEX.test(forward)) {
-      toast.error(`Invalid forward email: ${forward}`)
-      return
-    }
+  const tryCatch = async (f: () => Promise<void>): Promise<void> => {
     try {
-      const signature = await client.buildSignature(sld, alias, forward)
-      const separator = ethers.utils.toUtf8Bytes(await client.eas.SEPARATOR())
-      const data = ethers.utils.concat([ethers.utils.toUtf8Bytes(alias), separator, ethers.utils.toUtf8Bytes(forward), separator, signature])
-      const commitment = ethers.utils.keccak256(data)
-      const tx = await client.activate(sld, newAlias, commitment, makePublic)
-      toast.info('Operation completed on blockchain. Completing activation on mail server...')
-      toast.info(
-        <FlexColumn>
-          <BaseText style={{ marginRight: 8 }}>Operation completed on blockchain. Completing activation on mail server...</BaseText>
-          <LinkWrarpper target='_blank' href={client.getExplorerUri(tx.hash)}>
-            <BaseText>View transaction</BaseText>
-          </LinkWrarpper>
-        </FlexColumn>)
-      console.log(tx)
-      const { success, error } = await apis.activate(sld, alias, forward, signature)
-      if (success) {
-        toast.success('Activation complete!')
-      } else {
-        toast.error(`Activation failed. ${error ? `Error: ${error}` : 'Please contact us'}`)
-      }
+      await f()
     } catch (ex) {
       console.error(ex)
       // @ts-expect-error catch error in response
@@ -152,6 +160,48 @@ const Home: React.FC = ({ subdomain: string = config.tld }) => {
       }
       toast.info('Request cancelled')
     }
+  }
+
+  const upsert = async (alias: string, forward: string, makePublic: boolean): Promise<void> => {
+    if (!EMAIL_REGEX.test(forward)) {
+      toast.error(`Invalid forward email: ${forward}`)
+      return
+    }
+    await tryCatch(async () => {
+      const signature = await client.buildSignature(sld, alias, forward)
+      const separator = ethers.utils.toUtf8Bytes(await client.eas.SEPARATOR())
+      const data = ethers.utils.concat([ethers.utils.toUtf8Bytes(alias), separator, ethers.utils.toUtf8Bytes(forward), separator, signature])
+      const commitment = ethers.utils.keccak256(data)
+      const tx = await client.activate(sld, newAlias, commitment, makePublic)
+      toast.info(SuccessWithExplorerLink({
+        txHash: tx.hash,
+        message: 'Activated on-chain. Completing action on mail server...'
+      }))
+      console.log(tx)
+      const { success, error } = await apis.activate(sld, alias, forward, signature)
+      if (success) {
+        toast.success('Activation complete!')
+      } else {
+        toast.error(`Activation failed. ${error ? `Error: ${error}` : 'Please contact us'}`)
+      }
+    })
+  }
+
+  const del = async (alias: string): Promise<void> => {
+    await tryCatch(async () => {
+      const tx = await client.deactivate(sld, alias)
+      toast.info(SuccessWithExplorerLink({
+        txHash: tx.hash,
+        message: 'Deactivated on-chain. Completing action on mail server...'
+      }))
+      console.log(tx)
+      const { success, error } = await apis.deactivate(sld, alias)
+      if (success) {
+        toast.success('Deactivation complete!')
+      } else {
+        toast.error(`Deactivation failed. ${error ? `Error: ${error}` : 'Please contact us'}`)
+      }
+    })
   }
 
   const expired = expirationTime > 0 && (expirationTime - Date.now() < 0)
@@ -195,14 +245,36 @@ const Home: React.FC = ({ subdomain: string = config.tld }) => {
       {isOwner && <Desc>
         <FlexRow style={{ gap: 16, background: '#eee', padding: 8, alignItems: 'baseline' }}>
           <BaseText> + </BaseText>
-          <InputBox value={newAlias} onChange={({ target: { value } }) => setNewAlias(value)}/>
+          <AliasInputBox value={newAlias} onChange={({ target: { value } }) => setNewAlias(value)}/>
           <SmallTextGrey>@{sld}.{config.tld}</SmallTextGrey>
           <BaseText style={{ whiteSpace: 'nowrap' }}>FORWARD TO</BaseText>
           <InputBox type={'email'} value={newForward} onChange={({ target: { value } }) => setNewForward(value)}/>
-          <Button $width={'auto'} onClick={async () => { await add(newAlias, newForward, newMakePublic) }}>
-            {isNewAliasInUse ? 'UPDATE' : 'ADD'}
+          <Button disabled={pending} $width={'auto'} onClick={async () => { await upsert(newAlias, newForward, newMakePublic) }}>
+            {pending ? <Loading/> : (isNewAliasInUse ? 'UPDATE' : 'ADD')}
           </Button>
         </FlexRow>
+        {publicAliases.filter((e, i) => isPublicAliasesInUse[i]).map(alias => {
+          return (
+            <FlexRow key={alias} style={{ gap: 16, background: '#eee', padding: 8, alignItems: 'baseline' }}>
+              <BaseText> - </BaseText>
+              <AliasInputBox value={alias} disabled />
+              <SmallTextGrey>@{sld}.{config.tld}</SmallTextGrey>
+              <BaseText style={{ whiteSpace: 'nowrap' }}>FORWARD TO</BaseText>
+              <InputBox placeholder={'****'} type={'email'}
+                        value={newForward} onChange={({ target: { value } }) => setNewForward(value)}/>
+              <Button disabled={pending} $width={'auto'} onClick={async () => { await upsert(alias, newForward, true) }}>
+                {pending ? <Loading/> : 'UPDATE' }
+              </Button>
+              <Button disabled={pending} $width={'auto'} onClick={async () => { await del(alias) }}>
+                {pending ? <Loading/> : 'DELETE' }
+              </Button>
+            </FlexRow>
+          )
+        })}
+        {numHiddenAliases > 0 && (
+          <BaseText>Plus {numHiddenAliases} more private aliases</BaseText>
+        )}
+
       </Desc>}
       <div style={{ height: 320 }}/>
       <Feedback/>
