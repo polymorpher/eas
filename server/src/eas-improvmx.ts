@@ -47,3 +47,8 @@ export async function listAlias (sld: string): Promise<AliasEntry[]> {
   const { data } = await base.get(`/domains/${sld}.${config.TLD}/aliases/`)
   return data?.aliases
 }
+
+export async function getAlias (sld: string, alias: string): Promise<AliasEntry> {
+  const { data } = await base.get(`/domains/${sld}.${config.TLD}/aliases/${alias}`)
+  return data?.alias
+}
