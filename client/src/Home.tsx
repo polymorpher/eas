@@ -4,7 +4,7 @@ import { InjectedConnector } from 'wagmi/connectors/injected'
 import { ethers } from 'ethers'
 import config from '../config'
 import { Button, Input, LinkWrarpper } from './components/Controls'
-import { BaseText, Desc, SmallText, Title } from './components/Text'
+import { BaseText, Desc, FloatingText, SmallText, Title } from './components/Text'
 import { FlexColumn, FlexRow, Main } from './components/Layout'
 import styled from 'styled-components'
 import { toast } from 'react-toastify'
@@ -20,7 +20,7 @@ const Container = styled(Main)`
 `
 
 const Loading: React.FC = () => {
-  return <TailSpin stroke='grey' width={16} />
+  return <TailSpin stroke='grey' width={16} height={16} />
 }
 const SmallTextGrey = styled(SmallText)`
   color: grey;
@@ -75,6 +75,14 @@ interface SuccessWithExplorerLinkParameters {
   message: string
   txHash: string
 }
+
+enum AliasValidity {
+  ALIAS_VALIDITY_UNKNOWN = 0,
+  ALIAS_VALIDITY_VALID,
+  ALIAS_VALIDITY_INVALID,
+  ALIAS_VALIDITY_INDETERMINISTIC
+}
+
 const SuccessWithExplorerLink: React.FC = ({ message, txHash }: SuccessWithExplorerLinkParameters) => {
   return <FlexColumn style={{ gap: 8 }}>
     <BaseText>{message}</BaseText>
@@ -94,7 +102,9 @@ const Home: React.FC = () => {
   const provider = useProvider()
   const [expirationTime, setExpirationTime] = useState(0)
   const [publicAliases, setPublicAliases] = useState([])
-  const [isPublicAliasesInUse, setIsPublicAliasesInUse] = useState([])
+  const [forwards, setForwards] = useState([])
+  const [isPublicAliasesInUse, setIsPublicAliasesInUse] = useState<boolean[]>([])
+  const [isPublicAliasesValid, setIsPublicAliasesValid] = useState<AliasValidity[]>([])
   const [numAlias, setNumAlias] = useState(0)
   const [owner, setOwner] = useState('')
   const [newAlias, setNewAlias] = useState('')
@@ -104,10 +114,11 @@ const Home: React.FC = () => {
   const [client, setClient] = useState(buildClient())
   const { data: signer } = useSigner()
   const { connect } = useConnect({ connector: new InjectedConnector() })
-  const [pending, setPending] = useState(false)
+  const [pending, setPending] = useState(true)
 
   const sld = getSld()
-  const numHiddenAliases = numAlias - isPublicAliasesInUse.filter(e => e).length
+  const numHiddenAliases = numAlias - isPublicAliasesInUse.filter(e => e).length -
+      isPublicAliasesValid.filter(e => e === AliasValidity.ALIAS_VALIDITY_INVALID || e === AliasValidity.ALIAS_VALIDITY_UNKNOWN)
 
   console.log('sld', sld)
 
@@ -117,7 +128,12 @@ const Home: React.FC = () => {
     }
     async function f (): Promise<void> {
       const rs = await Promise.all(publicAliases.map(e => client.isAliasInUse(sld, e)))
+      // TODO: Doesn't work for regex alias. Need to implement a more power API at server to get all aliases and do regex matching on demand
+      const rs2 = await Promise.all(publicAliases.map(async e => await apis.check(sld, e)))
+      const validities = rs2.map(e => e ? AliasValidity.ALIAS_VALIDITY_VALID : AliasValidity.ALIAS_VALIDITY_INVALID)
+      setPending(false)
       setIsPublicAliasesInUse(rs)
+      setIsPublicAliasesValid(validities)
     }
     f().catch(ex => { console.error(ex) })
   }, [sld, publicAliases, client])
@@ -150,6 +166,7 @@ const Home: React.FC = () => {
 
   const tryCatch = async (f: () => Promise<void>): Promise<void> => {
     try {
+      setPending(true)
       await f()
     } catch (ex) {
       console.error(ex)
@@ -159,6 +176,8 @@ const Home: React.FC = () => {
         toast.error(`Request failed. Error: ${ex?.response?.error}`)
       }
       toast.info('Request cancelled')
+    } finally {
+      setPending(false)
     }
   }
 
@@ -225,7 +244,7 @@ const Home: React.FC = () => {
         {publicAliases.length > 0 && (<>
           <BaseText>You can reach the domain owner at:</BaseText>
           {publicAliases.map(a => {
-            return <BaseText key={a}>{a}@{sld}{config.tld}</BaseText>
+            return <BaseText key={a}>{a}@{sld}.{config.tld}</BaseText>
           })}
         </>)}
         {numAlias > 0 && publicAliases.length === 0 && (
@@ -253,21 +272,37 @@ const Home: React.FC = () => {
             {pending ? <Loading/> : (isNewAliasInUse ? 'UPDATE' : 'ADD')}
           </Button>
         </FlexRow>
-        {publicAliases.filter((e, i) => isPublicAliasesInUse[i]).map(alias => {
+        {publicAliases.map((alias: string, i: number) => {
+          if (!isPublicAliasesInUse[i]) {
+            return <React.Fragment key={`${alias}`}></React.Fragment>
+          }
           return (
-            <FlexRow key={alias} style={{ gap: 16, background: '#eee', padding: 8, alignItems: 'baseline' }}>
+            <FlexRow key={alias} style={{ gap: 16, background: '#eee', padding: 8, alignItems: 'baseline', position: 'relative' }}>
               <BaseText> - </BaseText>
               <AliasInputBox value={alias} disabled />
               <SmallTextGrey>@{sld}.{config.tld}</SmallTextGrey>
               <BaseText style={{ whiteSpace: 'nowrap' }}>FORWARD TO</BaseText>
               <InputBox placeholder={'****'} type={'email'}
-                        value={newForward} onChange={({ target: { value } }) => setNewForward(value)}/>
-              <Button disabled={pending} $width={'auto'} onClick={async () => { await upsert(alias, newForward, true) }}>
-                {pending ? <Loading/> : 'UPDATE' }
-              </Button>
-              <Button disabled={pending} $width={'auto'} onClick={async () => { await del(alias) }}>
-                {pending ? <Loading/> : 'DELETE' }
-              </Button>
+                        value={forwards[i]}
+                        onChange={({ target: { value } }) => setForwards(e => [...e.slice(0, i), value, e.slice(i + 1)])}
+              />
+              {isPublicAliasesValid[i] === AliasValidity.ALIAS_VALIDITY_VALID && <>
+                <Button disabled={pending} $width={'auto'} onClick={async () => { await upsert(alias, newForward, true) }}>
+                  {pending ? <Loading/> : 'UPDATE' }
+                </Button>
+                <Button disabled={pending} $width={'auto'} onClick={async () => { await del(alias) }}>
+                  {pending ? <Loading/> : 'DELETE' }
+                </Button>
+              </>}
+              {isPublicAliasesValid[i] === AliasValidity.ALIAS_VALIDITY_UNKNOWN && <>
+                <Loading/>
+              </>}
+              {isPublicAliasesValid[i] === AliasValidity.ALIAS_VALIDITY_INVALID && <>
+                <Button disabled={pending} $width={'auto'} onClick={async () => { await upsert(alias, forwards[i], true) }}>
+                  {pending ? <Loading/> : 'ACTIVATE' }
+                </Button>
+                <FloatingText>This activation of this domain is not completed</FloatingText>
+              </>}
             </FlexRow>
           )
         })}
