@@ -73,6 +73,7 @@ export const Hint = styled.div`
 export const FloatingText = styled(SmallText)`
   position: absolute;
   right: 0;
-  bottom: -8px;
+  bottom: -20px;
   margin-right: 0;
+  color: ${props => props.$color ?? '#888888'};
 `
