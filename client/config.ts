@@ -10,7 +10,7 @@ const config = {
   easServer: process.env.EAS_SERVER ?? 'https://1ns-eas.hiddenstate.xyz',
   tld: process.env.TLD ?? 'country',
   message (sld: string, alias: string, forwardAddress: string): string {
-    return `You are about to authorize forwarding all emails sent to [${alias}@${sld}.${config.tld}] to [${forwardAddress} instead]`
+    return `You are about to authorize forwarding all emails sent to [${alias}@${sld}.${config.tld}] to [${forwardAddress}] instead`
   }
 }
 
