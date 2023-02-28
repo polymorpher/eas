@@ -65,11 +65,13 @@ contract EAS is Ownable {
         if (ec.numAlias >= maxNumAlias && ec.forwards[aliasName] == bytes32(0)) {
             revert("EAS: exceeded maxNumAlias");
         }
-        ec.numAlias += 1;
         ec.forwards[aliasName] = commitment;
-        ec.keys.push(aliasName);
-        if (bytes(publicAlias).length > 0) {
-            ec.publicAliases.push(publicAlias);
+        if (ec.forwards[aliasName] == bytes32(0)) {
+            ec.numAlias += 1;
+            ec.keys.push(aliasName);
+            if (bytes(publicAlias).length > 0) {
+                ec.publicAliases.push(publicAlias);
+            }
         }
     }
 
