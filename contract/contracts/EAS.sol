@@ -61,11 +61,11 @@ contract EAS is Ownable {
     }
 
     function activate(bytes32 node, bytes32 aliasName, bytes32 commitment, string calldata publicAlias) public onlyNodeOwner(node) {
+        require(commitment != bytes32(0), "EAS: invalid commitment");
         EASConfig storage ec = configs[node];
         if (ec.numAlias >= maxNumAlias && ec.forwards[aliasName] == bytes32(0)) {
             revert("EAS: exceeded maxNumAlias");
         }
-        ec.forwards[aliasName] = commitment;
         if (ec.forwards[aliasName] == bytes32(0)) {
             ec.numAlias += 1;
             ec.keys.push(aliasName);
@@ -73,6 +73,7 @@ contract EAS is Ownable {
                 ec.publicAliases.push(publicAlias);
             }
         }
+        ec.forwards[aliasName] = commitment;
     }
 
     function deactivate(bytes32 node, bytes32 aliasName) public onlyNodeOwner(node) {
