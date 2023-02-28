@@ -4,7 +4,7 @@ import config from '../config'
 const base = axios.create({
   baseURL: config.improvMX.apiRoot,
   timeout: 10000,
-  headers: { Authorization: `Basic api:${config.improvMX.apiRoot}` }
+  headers: { Authorization: `Basic api:${config.improvMX.key}` }
 })
 
 export async function addDomain (sld: string, notificationEmail?: string): Promise<any> {
