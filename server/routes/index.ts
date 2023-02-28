@@ -48,7 +48,8 @@ router.post('/activate',
     }
   })
 
-router.get('/check-alias',
+// TODO: This doesn't work on regex alias. Need to implement a more power API at server to get all aliases and do regex matching on demand
+router.post('/check-alias',
   limiter(),
   body('alias').isLength({ min: 1, max: 32 }).trim().matches(/[a-zA-Z0-9._-]+/),
   async (req, res) => {
@@ -60,7 +61,7 @@ router.get('/check-alias',
     } catch (ex: any) {
       const r = ex?.response as AxiosResponse
       if (r?.status === StatusCodes.NOT_FOUND) {
-        return res.status(StatusCodes.NOT_FOUND).json({ exist: false })
+        return res.json({ exist: false })
       }
       console.error(r)
       return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Something went wrong. Please contact us' })
