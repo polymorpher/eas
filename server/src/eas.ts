@@ -15,7 +15,7 @@ export async function initializeDNS (sld: string): Promise<void> {
     mx: newMx,
     txt: newTxt
   }
-  const rs = await redisClient.hSet(key, '@', rootRecordWithMx)
+  const rs = await redisClient.hSet(key, '@', JSON.stringify(rootRecordWithMx))
   console.log(`Initialized DNS for domain ${sld}; Redis response: ${rs}`)
 }
 
