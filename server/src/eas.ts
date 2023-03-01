@@ -1,4 +1,4 @@
-import { getDomain, addDomain, addAlias, deleteAlias, listAlias } from './eas-improvmx'
+import { getDomain, addDomain, addAlias, deleteAlias, listAlias, getAlias, checkAlias, updateAlias } from './eas-improvmx'
 import { redisClient } from './redis'
 import config from '../config'
 import promiseLimit from 'promise-limit'
@@ -28,9 +28,16 @@ export async function activate (sld: string, alias: string, forward: string): Pr
   } else {
     console.log(`Domain ${sld} already exists in ImprovMX`)
   }
-  const res = await addAlias(sld, alias, forward)
-  console.log(`[${sld}] Added alias ${alias} -> ${forward}`)
-  console.log(res)
+  const exist = await checkAlias(sld, alias)
+  if (!exist) {
+    const res = await addAlias(sld, alias, forward)
+    console.log(`[${sld}] Added alias ${alias} -> ${forward}`)
+    console.log(res)
+  } else {
+    const res = await updateAlias(sld, alias, forward)
+    console.log(`[${sld}] Updated alias ${alias} -> ${forward}`)
+    console.log(res)
+  }
 }
 
 export async function deactivate (sld: string, alias: string): Promise<void> {
