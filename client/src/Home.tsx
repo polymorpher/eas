@@ -117,10 +117,36 @@ const Home: React.FC = () => {
   const { data: signer } = useSigner()
   const { connect } = useConnect({ connector: new InjectedConnector() })
   const [pending, setPending] = useState(true)
+  const [initializing, setInitializing] = useState(true)
 
   const sld = getSld()
   const numHiddenAliases = numAlias - isPublicAliasesInUse.filter(e => e).length -
       isPublicAliasesValid.filter(e => e === AliasValidity.ALIAS_VALIDITY_INVALID || e === AliasValidity.ALIAS_VALIDITY_UNKNOWN)
+
+  const tryCatch = async (f: () => Promise<any>, isInit?: boolean): Promise<void> => {
+    try {
+      if (isInit) {
+        setInitializing(true)
+      } else {
+        setPending(true)
+      }
+      await f()
+    } catch (ex) {
+      console.error(ex)
+      // @ts-expect-error catch error in response
+      if (ex?.response?.error) {
+        // @ts-expect-error catch error in response
+        toast.error(`Request failed. Error: ${ex?.response?.error}`)
+      }
+      toast.info('Request cancelled')
+    } finally {
+      if (isInit) {
+        setInitializing(false)
+      } else {
+        setPending(false)
+      }
+    }
+  }
 
   console.log('sld', sld)
 
@@ -134,7 +160,7 @@ const Home: React.FC = () => {
       await Promise.all(publicAliases.map(async e => await apis.check(sld, e))).then(rs2 => {
         setIsPublicAliasesValid(rs2.map(e => e ? AliasValidity.ALIAS_VALIDITY_VALID : AliasValidity.ALIAS_VALIDITY_INVALID))
       })
-    }).catch(ex => { console.error(ex) })
+    }, true).catch(ex => { console.error(ex) })
   }, [sld, publicAliases, client])
 
   useEffect(() => {
@@ -156,8 +182,9 @@ const Home: React.FC = () => {
         client.getPublicAliases(sld).then(e => setPublicAliases(e)),
         client.getNumAlias(sld).then(e => setNumAlias(e))
       ])
-    }).catch(e => { console.error(e) })
+    }, true).catch(e => { console.error(e) })
   }, [client, sld])
+
   useEffect(() => {
     if (!debouncedNewAlias || !client || !sld) {
       return
@@ -166,23 +193,6 @@ const Home: React.FC = () => {
       setIsNewAliasInUse(b)
     })).catch(e => { console.error(e) })
   }, [debouncedNewAlias, client, sld])
-
-  const tryCatch = async (f: () => Promise<any>): Promise<void> => {
-    try {
-      setPending(true)
-      await f()
-    } catch (ex) {
-      console.error(ex)
-      // @ts-expect-error catch error in response
-      if (ex?.response?.error) {
-        // @ts-expect-error catch error in response
-        toast.error(`Request failed. Error: ${ex?.response?.error}`)
-      }
-      toast.info('Request cancelled')
-    } finally {
-      setPending(false)
-    }
-  }
 
   const upsert = async (alias: string, forward: string, makePublic: boolean): Promise<void> => {
     if (!EMAIL_REGEX.test(forward)) {
@@ -281,7 +291,9 @@ const Home: React.FC = () => {
         <BaseText>Plus {numHiddenAliases} more private aliases</BaseText>
         )}
 
-        {pending && <><Loading/> Loading Email Configurations...</>}
+        {initializing && <><Loading/> Loading Email Configurations...</>}
+
+        <BaseText style={{ margin: 16 }}>Your Existing Aliases</BaseText>
 
         {publicAliases.map((alias: string, i: number) => {
           if (!isPublicAliasesInUse[i]) {
