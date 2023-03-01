@@ -27,17 +27,6 @@ const SmallTextGrey = styled(SmallText)`
   color: grey;
 `
 
-const Label = styled(SmallTextGrey)`
-  margin-right: 16px;
-`
-
-const DescResponsive = styled(Desc)`
-  @media(max-width: 640px){
-    text-align: left;
-    align-items: start;
-  }
-`
-
 // RFC 2822
 const EMAIL_REGEX = /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/
 
@@ -50,10 +39,7 @@ const getSld = (): string => {
   if (parts.length <= 1) {
     return ''
   }
-  if (parts.length <= 2) {
-    return parts[0]
-  }
-  return parts.slice(0, parts.length - 1).join('.')
+  return parts[parts.length - 2]
 }
 
 const InputBox = styled(Input)`
