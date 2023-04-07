@@ -40,6 +40,7 @@ export interface Client {
   getExpirationTime: (sld: string) => Promise<number>
   getNumAlias: (sld: string) => Promise<number>
   getPublicAliases: (sld: string) => Promise<string[]>
+  setPublicAliases: (sld: string, aliases: string[]) => Promise<ContractTransaction>
   activate: (sld: string, alias: string, commitment: string, makePublic: boolean) => Promise<ContractTransaction>
   deactivate: (sld: string, alias: string) => Promise<ContractTransaction>
   deactivateAll: (sld: string) => Promise<ContractTransaction>
@@ -83,6 +84,9 @@ export const buildClient = (provider?, signer?): Client => {
     },
     getPublicAliases: async (sld: string) => {
       return await eas.getPublicAliases(ethers.utils.id(sld))
+    },
+    setPublicAliases: async (sld: string, aliases: string[]) => {
+      return await eas.setPublicAliases(sld, aliases)
     },
     getNumAlias: async (sld: string) => {
       const r = await eas.getNumAlias(ethers.utils.id(sld))

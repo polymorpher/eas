@@ -88,7 +88,7 @@ const Home: React.FC = () => {
   const { address, isConnected } = useAccount()
   const provider = useProvider()
   const [expirationTime, setExpirationTime] = useState(0)
-  const [publicAliases, setPublicAliases] = useState([])
+  const [publicAliases, setPublicAliases] = useState<string[]>([])
   const [forwards, setForwards] = useState([])
   const [isPublicAliasesInUse, setIsPublicAliasesInUse] = useState<boolean[]>([])
   const [isPublicAliasesValid, setIsPublicAliasesValid] = useState<AliasValidity[]>([])
@@ -190,6 +190,9 @@ const Home: React.FC = () => {
       const separator = ethers.utils.toUtf8Bytes(await client.eas.SEPARATOR())
       const data = ethers.utils.concat([ethers.utils.toUtf8Bytes(alias), separator, ethers.utils.toUtf8Bytes(forward), separator, signature])
       const commitment = ethers.utils.keccak256(data)
+      if (publicAliases.indexOf(alias) >= 0) {
+        makePublic = false
+      }
       const tx = await client.activate(sld, newAlias, commitment, makePublic)
       toast.info(SuccessWithExplorerLink({
         txHash: tx.hash,
@@ -208,7 +211,6 @@ const Home: React.FC = () => {
 
   const del = async (alias: string): Promise<void> => {
     await tryCatch(async () => {
-      console.log('del', sld, alias)
       const tx = await client.deactivate(sld, alias)
       toast.info(SuccessWithExplorerLink({
         txHash: tx.hash,
@@ -218,10 +220,16 @@ const Home: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 2500))
       const { success, error } = await apis.deactivate(sld, alias)
       if (success) {
-        toast.success('Deactivation complete!')
+        toast.info('Deactivation complete. Updating public email addresses...')
       } else {
         toast.error(`Deactivation failed. ${error ? `Error: ${error}` : 'Please contact us'}`)
       }
+      const newPublicAliases = publicAliases.filter(e => e.toLowerCase() !== alias.toLowerCase())
+      const tx2 = await client.setPublicAliases(sld, newPublicAliases)
+      toast.success(SuccessWithExplorerLink({
+        txHash: tx2.hash,
+        message: 'Public email addresses updated!'
+      }))
     })
   }
 
