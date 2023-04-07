@@ -19,7 +19,7 @@ interface DomainInfo {
 }
 export async function getDomain (sld: string): Promise<DomainInfo | null> {
   try {
-    const { data } = await base.get(`/domains/${sld}.${config.TLD}/`)
+    const { data } = await base.get(`/domains/${sld}.${config.TLD}`)
     return data
   } catch (ex) {
     if ((ex as AxiosError)?.response?.status === 404) {
