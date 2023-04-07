@@ -42,8 +42,8 @@ router.post('/activate',
       }
       await activate(sld, alias, forwardAddress)
       res.json({ success: true })
-    } catch (ex) {
-      console.error('[/activate]', ex)
+    } catch (ex: any) {
+      console.error('[/activate]', ex?.response?.data ?? ex)
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'cannot process request' })
     }
   })
@@ -82,8 +82,8 @@ router.post('/deactivate',
       }
       await deactivate(sld, alias)
       res.json({ success: true })
-    } catch (ex) {
-      console.error('[/deactivate]', ex)
+    } catch (ex: any) {
+      console.error('[/deactivate]', ex?.response?.data ?? ex)
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'cannot process request' })
     }
   })
@@ -101,8 +101,8 @@ router.post('/deactivate-all',
       }
       await deactivateAll(sld)
       res.json({ success: true })
-    } catch (ex) {
-      console.error('[/deactivate-all]', ex)
+    } catch (ex: any) {
+      console.error('[/deactivate-all]', ex?.response?.data ?? ex)
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'cannot process request' })
     }
   })
