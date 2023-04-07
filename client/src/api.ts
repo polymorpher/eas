@@ -41,8 +41,8 @@ export interface Client {
   getNumAlias: (sld: string) => Promise<number>
   getPublicAliases: (sld: string) => Promise<string[]>
   activate: (sld: string, alias: string, commitment: string, makePublic: boolean) => Promise<ContractTransaction>
-  deactivate: (sld: string, alias: string) => Promise<void>
-  deactivateAll: (sld: string) => Promise<void>
+  deactivate: (sld: string, alias: string) => Promise<ContractTransaction>
+  deactivateAll: (sld: string) => Promise<ContractTransaction>
   buildSignature: (sld: string, alias: string, forward: string) => Promise<string>
   isAliasInUse: (sld: string, alias: string) => Promise<boolean>
 
@@ -96,10 +96,10 @@ export const buildClient = (provider?, signer?): Client => {
       return await eas.activate(sld, ethers.utils.id(alias), commitment, makePublic ? alias : '')
     },
     deactivate: async (sld: string, alias: string) => {
-      await eas.deactivate(sld, ethers.utils.id(alias))
+      return await eas.deactivate(sld, ethers.utils.id(alias))
     },
     deactivateAll: async (sld: string) => {
-      await eas.deactivateAll(sld)
+      return await eas.deactivateAll(sld)
     },
     buildSignature: async (sld: string, alias: string, forward: string) => {
       const msg = config.message(sld, alias, forward)

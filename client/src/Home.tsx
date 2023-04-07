@@ -153,6 +153,8 @@ const Home: React.FC = () => {
     }
     const c = buildClient(provider, signer)
     setClient(c)
+    // @ts-expect-error debugging
+    window.client = c
   }, [provider, signer])
 
   useEffect(() => {
@@ -194,6 +196,7 @@ const Home: React.FC = () => {
         message: 'Activated on-chain. Completing action on mail server...'
       }))
       console.log(tx)
+      await new Promise((resolve) => setTimeout(resolve, 2500))
       const { success, error } = await apis.activate(sld, alias, forward, signature)
       if (success) {
         toast.success('Activation complete!')
@@ -205,12 +208,14 @@ const Home: React.FC = () => {
 
   const del = async (alias: string): Promise<void> => {
     await tryCatch(async () => {
+      console.log('del', sld, alias)
       const tx = await client.deactivate(sld, alias)
       toast.info(SuccessWithExplorerLink({
         txHash: tx.hash,
         message: 'Deactivated on-chain. Completing action on mail server...'
       }))
       console.log(tx)
+      await new Promise((resolve) => setTimeout(resolve, 2500))
       const { success, error } = await apis.deactivate(sld, alias)
       if (success) {
         toast.success('Deactivation complete!')
@@ -240,8 +245,8 @@ const Home: React.FC = () => {
       <Desc>
         {publicAliases.length > 0 && (<>
           <BaseText>You can reach the domain owner at:</BaseText>
-          {publicAliases.map(a => {
-            return <BaseText style={{ background: '#eee', padding: 8 }} key={a}>{a}@{sld}.{config.tld}</BaseText>
+          {publicAliases.map((a, i) => {
+            return <BaseText style={{ background: '#eee', padding: 8 }} key={`email-${a}-${i}`}>{a}@{sld}.{config.tld}</BaseText>
           })}
         </>)}
         {numAlias > 0 && publicAliases.length === 0 && (
@@ -281,10 +286,10 @@ const Home: React.FC = () => {
 
         {publicAliases.map((alias: string, i: number) => {
           if (!isPublicAliasesInUse[i]) {
-            return <React.Fragment key={`${alias}`}></React.Fragment>
+            return <React.Fragment key={`alias-${alias}-${i}`}></React.Fragment>
           }
           return (
-            <FlexRow key={alias} style={{
+            <FlexRow key={`alias-${alias}-${i}`} style={{
               gap: 16,
               background: '#eee',
               minHeight: 51,
