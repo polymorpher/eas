@@ -74,12 +74,12 @@ export const buildClient = (provider?, signer?): Client => {
     dc,
     getOwner: async (sld: string) => {
       const c = await dc()
-      const r = await c.nameRecords(ethers.utils.id(sld))
+      const r = await c.ownerOf(sld)
       return r[0]
     },
     getExpirationTime: async (sld: string) => {
       const c = await dc()
-      const r = await c.nameRecords(ethers.utils.id(sld))
+      const r = await c.nameExpires(sld)
       return r[2].toNumber() * 1000
     },
     getPublicAliases: async (sld: string) => {
@@ -94,13 +94,13 @@ export const buildClient = (provider?, signer?): Client => {
       return !ethers.BigNumber.from(c).eq(0)
     },
     activate: async (sld: string, alias: string, commitment: string, makePublic: boolean) => {
-      return await eas.activate(ethers.utils.id(sld), ethers.utils.id(alias), commitment, makePublic ? alias : '')
+      return await eas.activate(sld, ethers.utils.id(alias), commitment, makePublic ? alias : '')
     },
     deactivate: async (sld: string, alias: string) => {
-      await eas.deactivate(ethers.utils.id(sld), ethers.utils.id(alias))
+      await eas.deactivate(sld, ethers.utils.id(alias))
     },
     deactivateAll: async (sld: string) => {
-      await eas.deactivateAll(ethers.utils.id(sld))
+      await eas.deactivateAll(sld)
     },
     buildSignature: async (sld: string, alias: string, forward: string) => {
       const msg = config.message(sld, alias, forward)

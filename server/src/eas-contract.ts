@@ -15,8 +15,7 @@ interface VerifyParameters {
 export async function getOwner (sld: string): Promise<string> {
   const dcAddress = await eas.dc()
   const dc = new ethers.Contract(dcAddress, IDCAbi, provider) as IDC
-  const node = ethers.utils.id(sld)
-  const r = await dc.nameRecords(node)
+  const r = await dc.ownerOf(sld)
   return r[0].toLowerCase()
 }
 
@@ -46,6 +45,11 @@ export async function isAllDeactivated (sld: string): Promise<boolean> {
 export async function verifySignature ({ signature, sld, alias, forwardAddress }: VerifyParameters): Promise<boolean> {
   const digest = ethers.utils.hashMessage(config.message(sld, alias, forwardAddress))
   const address = ethers.utils.recoverAddress(digest, signature)
-  const owner = await getOwner(sld)
-  return owner === address.toLowerCase()
+  try {
+    const owner = await getOwner(sld)
+    return owner === address.toLowerCase()
+  } catch (ex) {
+    console.error(ex)
+    return false
+  }
 }

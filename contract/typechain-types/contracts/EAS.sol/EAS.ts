@@ -30,11 +30,11 @@ import type {
 export interface EASInterface extends utils.Interface {
   functions: {
     "SEPARATOR()": FunctionFragment;
-    "activate(bytes32,bytes32,bytes32,string)": FunctionFragment;
+    "activate(string,bytes32,bytes32,string)": FunctionFragment;
     "configs(bytes32)": FunctionFragment;
     "dc()": FunctionFragment;
-    "deactivate(bytes32,bytes32)": FunctionFragment;
-    "deactivateAll(bytes32)": FunctionFragment;
+    "deactivate(string,bytes32)": FunctionFragment;
+    "deactivateAll(string)": FunctionFragment;
     "getCommitment(bytes32,bytes32)": FunctionFragment;
     "getNumAlias(bytes32)": FunctionFragment;
     "getPublicAliases(bytes32)": FunctionFragment;
@@ -43,9 +43,9 @@ export interface EASInterface extends utils.Interface {
     "renounceOwnership()": FunctionFragment;
     "setDc(address)": FunctionFragment;
     "setMaxNumAlias(uint256)": FunctionFragment;
-    "setPublicAliases(bytes32,string[])": FunctionFragment;
+    "setPublicAliases(string,string[])": FunctionFragment;
     "transferOwnership(address)": FunctionFragment;
-    "verify(bytes32,bytes32,string,string,bytes)": FunctionFragment;
+    "verify(string,bytes32,string,string,bytes)": FunctionFragment;
   };
 
   getFunction(
@@ -73,7 +73,7 @@ export interface EASInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "activate",
     values: [
-      PromiseOrValue<BytesLike>,
+      PromiseOrValue<string>,
       PromiseOrValue<BytesLike>,
       PromiseOrValue<BytesLike>,
       PromiseOrValue<string>
@@ -86,11 +86,11 @@ export interface EASInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "dc", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "deactivate",
-    values: [PromiseOrValue<BytesLike>, PromiseOrValue<BytesLike>]
+    values: [PromiseOrValue<string>, PromiseOrValue<BytesLike>]
   ): string;
   encodeFunctionData(
     functionFragment: "deactivateAll",
-    values: [PromiseOrValue<BytesLike>]
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "getCommitment",
@@ -123,7 +123,7 @@ export interface EASInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "setPublicAliases",
-    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>[]]
+    values: [PromiseOrValue<string>, PromiseOrValue<string>[]]
   ): string;
   encodeFunctionData(
     functionFragment: "transferOwnership",
@@ -132,7 +132,7 @@ export interface EASInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "verify",
     values: [
-      PromiseOrValue<BytesLike>,
+      PromiseOrValue<string>,
       PromiseOrValue<BytesLike>,
       PromiseOrValue<string>,
       PromiseOrValue<string>,
@@ -234,7 +234,7 @@ export interface EAS extends BaseContract {
     SEPARATOR(overrides?: CallOverrides): Promise<[string]>;
 
     activate(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       aliasName: PromiseOrValue<BytesLike>,
       commitment: PromiseOrValue<BytesLike>,
       publicAlias: PromiseOrValue<string>,
@@ -249,13 +249,13 @@ export interface EAS extends BaseContract {
     dc(overrides?: CallOverrides): Promise<[string]>;
 
     deactivate(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       aliasName: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     deactivateAll(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -294,7 +294,7 @@ export interface EAS extends BaseContract {
     ): Promise<ContractTransaction>;
 
     setPublicAliases(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       aliases: PromiseOrValue<string>[],
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
@@ -305,7 +305,7 @@ export interface EAS extends BaseContract {
     ): Promise<ContractTransaction>;
 
     verify(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       msgHash: PromiseOrValue<BytesLike>,
       aliasName: PromiseOrValue<string>,
       forwardAddress: PromiseOrValue<string>,
@@ -317,7 +317,7 @@ export interface EAS extends BaseContract {
   SEPARATOR(overrides?: CallOverrides): Promise<string>;
 
   activate(
-    node: PromiseOrValue<BytesLike>,
+    name: PromiseOrValue<string>,
     aliasName: PromiseOrValue<BytesLike>,
     commitment: PromiseOrValue<BytesLike>,
     publicAlias: PromiseOrValue<string>,
@@ -332,13 +332,13 @@ export interface EAS extends BaseContract {
   dc(overrides?: CallOverrides): Promise<string>;
 
   deactivate(
-    node: PromiseOrValue<BytesLike>,
+    name: PromiseOrValue<string>,
     aliasName: PromiseOrValue<BytesLike>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   deactivateAll(
-    node: PromiseOrValue<BytesLike>,
+    name: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -377,7 +377,7 @@ export interface EAS extends BaseContract {
   ): Promise<ContractTransaction>;
 
   setPublicAliases(
-    node: PromiseOrValue<BytesLike>,
+    name: PromiseOrValue<string>,
     aliases: PromiseOrValue<string>[],
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
@@ -388,7 +388,7 @@ export interface EAS extends BaseContract {
   ): Promise<ContractTransaction>;
 
   verify(
-    node: PromiseOrValue<BytesLike>,
+    name: PromiseOrValue<string>,
     msgHash: PromiseOrValue<BytesLike>,
     aliasName: PromiseOrValue<string>,
     forwardAddress: PromiseOrValue<string>,
@@ -400,7 +400,7 @@ export interface EAS extends BaseContract {
     SEPARATOR(overrides?: CallOverrides): Promise<string>;
 
     activate(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       aliasName: PromiseOrValue<BytesLike>,
       commitment: PromiseOrValue<BytesLike>,
       publicAlias: PromiseOrValue<string>,
@@ -415,13 +415,13 @@ export interface EAS extends BaseContract {
     dc(overrides?: CallOverrides): Promise<string>;
 
     deactivate(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       aliasName: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     deactivateAll(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -458,7 +458,7 @@ export interface EAS extends BaseContract {
     ): Promise<void>;
 
     setPublicAliases(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       aliases: PromiseOrValue<string>[],
       overrides?: CallOverrides
     ): Promise<void>;
@@ -469,7 +469,7 @@ export interface EAS extends BaseContract {
     ): Promise<void>;
 
     verify(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       msgHash: PromiseOrValue<BytesLike>,
       aliasName: PromiseOrValue<string>,
       forwardAddress: PromiseOrValue<string>,
@@ -493,7 +493,7 @@ export interface EAS extends BaseContract {
     SEPARATOR(overrides?: CallOverrides): Promise<BigNumber>;
 
     activate(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       aliasName: PromiseOrValue<BytesLike>,
       commitment: PromiseOrValue<BytesLike>,
       publicAlias: PromiseOrValue<string>,
@@ -508,13 +508,13 @@ export interface EAS extends BaseContract {
     dc(overrides?: CallOverrides): Promise<BigNumber>;
 
     deactivate(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       aliasName: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     deactivateAll(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -553,7 +553,7 @@ export interface EAS extends BaseContract {
     ): Promise<BigNumber>;
 
     setPublicAliases(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       aliases: PromiseOrValue<string>[],
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
@@ -564,7 +564,7 @@ export interface EAS extends BaseContract {
     ): Promise<BigNumber>;
 
     verify(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       msgHash: PromiseOrValue<BytesLike>,
       aliasName: PromiseOrValue<string>,
       forwardAddress: PromiseOrValue<string>,
@@ -577,7 +577,7 @@ export interface EAS extends BaseContract {
     SEPARATOR(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     activate(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       aliasName: PromiseOrValue<BytesLike>,
       commitment: PromiseOrValue<BytesLike>,
       publicAlias: PromiseOrValue<string>,
@@ -592,13 +592,13 @@ export interface EAS extends BaseContract {
     dc(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     deactivate(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       aliasName: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     deactivateAll(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -637,7 +637,7 @@ export interface EAS extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     setPublicAliases(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       aliases: PromiseOrValue<string>[],
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
@@ -648,7 +648,7 @@ export interface EAS extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     verify(
-      node: PromiseOrValue<BytesLike>,
+      name: PromiseOrValue<string>,
       msgHash: PromiseOrValue<BytesLike>,
       aliasName: PromiseOrValue<string>,
       forwardAddress: PromiseOrValue<string>,

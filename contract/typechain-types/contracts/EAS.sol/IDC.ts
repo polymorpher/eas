@@ -22,20 +22,28 @@ import type {
 
 export interface IDCInterface extends utils.Interface {
   functions: {
-    "nameRecords(bytes32)": FunctionFragment;
+    "nameExpires(string)": FunctionFragment;
+    "ownerOf(string)": FunctionFragment;
   };
 
-  getFunction(nameOrSignatureOrTopic: "nameRecords"): FunctionFragment;
+  getFunction(
+    nameOrSignatureOrTopic: "nameExpires" | "ownerOf"
+  ): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "nameRecords",
-    values: [PromiseOrValue<BytesLike>]
+    functionFragment: "nameExpires",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "ownerOf",
+    values: [PromiseOrValue<string>]
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "nameRecords",
+    functionFragment: "nameExpires",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "ownerOf", data: BytesLike): Result;
 
   events: {};
 }
@@ -67,40 +75,61 @@ export interface IDC extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    nameRecords(
-      node: PromiseOrValue<BytesLike>,
+    nameExpires(
+      name: PromiseOrValue<string>,
       overrides?: CallOverrides
-    ): Promise<
-      [string, BigNumber, BigNumber, BigNumber, string, string, string]
-    >;
+    ): Promise<[BigNumber]>;
+
+    ownerOf(
+      name: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[string]>;
   };
 
-  nameRecords(
-    node: PromiseOrValue<BytesLike>,
+  nameExpires(
+    name: PromiseOrValue<string>,
     overrides?: CallOverrides
-  ): Promise<[string, BigNumber, BigNumber, BigNumber, string, string, string]>;
+  ): Promise<BigNumber>;
+
+  ownerOf(
+    name: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<string>;
 
   callStatic: {
-    nameRecords(
-      node: PromiseOrValue<BytesLike>,
+    nameExpires(
+      name: PromiseOrValue<string>,
       overrides?: CallOverrides
-    ): Promise<
-      [string, BigNumber, BigNumber, BigNumber, string, string, string]
-    >;
+    ): Promise<BigNumber>;
+
+    ownerOf(
+      name: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<string>;
   };
 
   filters: {};
 
   estimateGas: {
-    nameRecords(
-      node: PromiseOrValue<BytesLike>,
+    nameExpires(
+      name: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    ownerOf(
+      name: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
-    nameRecords(
-      node: PromiseOrValue<BytesLike>,
+    nameExpires(
+      name: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    ownerOf(
+      name: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
   };

@@ -50,9 +50,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
-        "name": "node",
-        "type": "bytes32"
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
       },
       {
         "internalType": "bytes32",
@@ -110,9 +110,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
-        "name": "node",
-        "type": "bytes32"
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
       },
       {
         "internalType": "bytes32",
@@ -128,9 +128,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
-        "name": "node",
-        "type": "bytes32"
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
       }
     ],
     "name": "deactivateAll",
@@ -262,9 +262,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
-        "name": "node",
-        "type": "bytes32"
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
       },
       {
         "internalType": "string[]",
@@ -293,9 +293,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
-        "name": "node",
-        "type": "bytes32"
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
       },
       {
         "internalType": "bytes32",

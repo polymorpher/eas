@@ -4,9 +4,9 @@ pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-// TODO - add an owner-verification and expiration getter function in DC contract
 interface IDC {
-    function nameRecords(bytes32 node) external view returns (address, uint256, uint256, uint256, string memory, string memory, string memory);
+    function ownerOf(string memory name) external view returns (address);
+    function nameExpires(string memory name) external view returns (uint256);
 }
 
 contract EAS is Ownable {
@@ -53,15 +53,17 @@ contract EAS is Ownable {
         maxNumAlias = _maxNumAlias;
     }
 
-    modifier onlyNodeOwner(bytes32 node){
-        (address renter,,uint256 expirationTime,,,,) = dc.nameRecords(node);
+    modifier onlyNameOwner(string memory name){
+        address renter = dc.ownerOf(name);
+        uint256 expiry = dc.nameExpires(name);
         require(renter == msg.sender, "EAS: not domain owner");
-        require(expirationTime > block.timestamp, "EAS: domain expired");
+        require(expiry > block.timestamp, "EAS: domain expired");
         _;
     }
 
-    function activate(bytes32 node, bytes32 aliasName, bytes32 commitment, string calldata publicAlias) public onlyNodeOwner(node) {
+    function activate(string memory name, bytes32 aliasName, bytes32 commitment, string calldata publicAlias) public onlyNameOwner(name) {
         require(commitment != bytes32(0), "EAS: invalid commitment");
+        bytes32 node = keccak256(bytes(name));
         EASConfig storage ec = configs[node];
         if (ec.numAlias >= maxNumAlias && ec.forwards[aliasName] == bytes32(0)) {
             revert("EAS: exceeded maxNumAlias");
@@ -76,7 +78,8 @@ contract EAS is Ownable {
         ec.forwards[aliasName] = commitment;
     }
 
-    function deactivate(bytes32 node, bytes32 aliasName) public onlyNodeOwner(node) {
+    function deactivate(string memory name, bytes32 aliasName) public onlyNameOwner(name) {
+        bytes32 node = keccak256(bytes(name));
         EASConfig storage ec = configs[node];
         require(ec.forwards[aliasName] != bytes32(0), "EAS: already deactivated");
         ec.numAlias -= 1;
@@ -92,7 +95,8 @@ contract EAS is Ownable {
         ec.keys.pop();
     }
 
-    function deactivateAll(bytes32 node) public onlyNodeOwner(node) {
+    function deactivateAll(string memory name) public onlyNameOwner(name) {
+        bytes32 node = keccak256(bytes(name));
         EASConfig storage ec = configs[node];
         for (uint256 i = 0; i < ec.keys.length; i++) {
             delete ec.forwards[ec.keys[i]];
@@ -102,12 +106,14 @@ contract EAS is Ownable {
         ec.numAlias = 0;
     }
 
-    function setPublicAliases(bytes32 node, string[] memory aliases) public onlyNodeOwner(node) {
+    function setPublicAliases(string memory name, string[] memory aliases) public onlyNameOwner(name) {
+        bytes32 node = keccak256(bytes(name));
         configs[node].publicAliases = aliases;
     }
 
-    function verify(bytes32 node, bytes32 msgHash, string calldata aliasName, string calldata forwardAddress, bytes calldata sig) external view {
-        (address renter,,,,,,) = dc.nameRecords(node);
+    function verify(string memory name, bytes32 msgHash, string calldata aliasName, string calldata forwardAddress, bytes calldata sig) external view {
+        address renter = dc.ownerOf(name);
+        bytes32 node = keccak256(bytes(name));
         bytes32 commitment = configs[node].forwards[keccak256(bytes(aliasName))];
         address signer = ecrecover(msgHash, uint8(sig[65]), bytes32(sig[0 : 32]), bytes32(sig[32 : 64]));
         require(signer == renter, "EAS: signature mismatch");
