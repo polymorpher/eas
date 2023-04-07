@@ -16,7 +16,7 @@ export async function getOwner (sld: string): Promise<string> {
   const dcAddress = await eas.dc()
   const dc = new ethers.Contract(dcAddress, IDCAbi, provider) as IDC
   const r = await dc.ownerOf(sld)
-  return r[0].toLowerCase()
+  return r.toLowerCase()
 }
 
 interface VerifyCommitmentResult {
