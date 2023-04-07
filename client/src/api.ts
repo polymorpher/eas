@@ -74,13 +74,12 @@ export const buildClient = (provider?, signer?): Client => {
     dc,
     getOwner: async (sld: string) => {
       const c = await dc()
-      const r = await c.ownerOf(sld)
-      return r[0]
+      return c.ownerOf(sld)
     },
     getExpirationTime: async (sld: string) => {
       const c = await dc()
       const r = await c.nameExpires(sld)
-      return r[2].toNumber() * 1000
+      return r.toNumber() * 1000
     },
     getPublicAliases: async (sld: string) => {
       return await eas.getPublicAliases(ethers.utils.id(sld))

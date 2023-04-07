@@ -134,8 +134,6 @@ const Home: React.FC = () => {
     }
   }
 
-  console.log('sld', sld)
-
   useEffect(() => {
     if (!client?.eas?.signer) {
       return
