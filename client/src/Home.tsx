@@ -70,7 +70,7 @@ enum AliasValidity {
   ALIAS_VALIDITY_INDETERMINISTIC
 }
 
-const SuccessWithExplorerLink: React.FC = ({ message, txHash }: SuccessWithExplorerLinkParameters) => {
+const SuccessWithExplorerLink = ({ message, txHash }: SuccessWithExplorerLinkParameters): React.JSX.Element => {
   return <FlexColumn style={{ gap: 8 }}>
     <BaseText>{message}</BaseText>
     <LinkWrarpper target='_blank' href={config.explorer(txHash)}>
@@ -89,13 +89,13 @@ const Home: React.FC = () => {
   const provider = useProvider()
   const [expirationTime, setExpirationTime] = useState(0)
   const [publicAliases, setPublicAliases] = useState<string[]>([])
-  const [forwards, setForwards] = useState([])
+  const [forwards, setForwards] = useState<string[]>([])
   const [isPublicAliasesInUse, setIsPublicAliasesInUse] = useState<boolean[]>([])
   const [isPublicAliasesValid, setIsPublicAliasesValid] = useState<AliasValidity[]>([])
   const [numAlias, setNumAlias] = useState(0)
   const [owner, setOwner] = useState('')
   const [newAlias, setNewAlias] = useState('hello')
-  const debouncedNewAlias = useDebounce(newAlias, 500)
+  const debouncedNewAlias = useDebounce<string>(newAlias, 500)
   const [isNewAliasInUse, setIsNewAliasInUse] = useState(false)
   const [newForward, setNewForward] = useState('')
   const [newMakePublic] = useState(true)
@@ -107,7 +107,7 @@ const Home: React.FC = () => {
 
   const sld = getSld()
   const numHiddenAliases = numAlias - isPublicAliasesInUse.filter(e => e).length -
-      isPublicAliasesValid.filter(e => e === AliasValidity.ALIAS_VALIDITY_INVALID || e === AliasValidity.ALIAS_VALIDITY_UNKNOWN)
+      isPublicAliasesValid.filter(e => e === AliasValidity.ALIAS_VALIDITY_INVALID || e === AliasValidity.ALIAS_VALIDITY_UNKNOWN).length
 
   const tryCatch = async (f: () => Promise<any>, isInit?: boolean): Promise<void> => {
     try {
@@ -139,7 +139,7 @@ const Home: React.FC = () => {
       return
     }
     tryCatch(async () => {
-      await Promise.all(publicAliases.map(e => client.isAliasInUse(sld, e))).then(rs => setIsPublicAliasesInUse(rs))
+      await Promise.all(publicAliases.map(async e => await client.isAliasInUse(sld, e))).then(rs => { setIsPublicAliasesInUse(rs) })
       // TODO: Doesn't work for regex alias. Need to implement a more power API at server to get all aliases and do regex matching on demand
       await Promise.all(publicAliases.map(async e => await apis.check(sld, e))).then(rs2 => {
         setIsPublicAliasesValid(rs2.map(e => e ? AliasValidity.ALIAS_VALIDITY_VALID : AliasValidity.ALIAS_VALIDITY_INVALID))
@@ -163,10 +163,10 @@ const Home: React.FC = () => {
     }
     tryCatch(async () => {
       return await Promise.all([
-        client.getOwner(sld).then(e => setOwner(e)),
-        client.getExpirationTime(sld).then(e => setExpirationTime(e)),
-        client.getPublicAliases(sld).then(e => setPublicAliases(e)),
-        client.getNumAlias(sld).then(e => setNumAlias(e))
+        client.getOwner(sld).then(e => { setOwner(e) }),
+        client.getExpirationTime(sld).then(e => { setExpirationTime(e) }),
+        client.getPublicAliases(sld).then(e => { setPublicAliases(e) }),
+        client.getNumAlias(sld).then(e => { setNumAlias(e) })
       ])
     }, true).catch(e => { console.error(e) })
   }, [client, sld])
@@ -175,9 +175,11 @@ const Home: React.FC = () => {
     if (!debouncedNewAlias || !client || !sld) {
       return
     }
-    tryCatch(() => client.isAliasInUse(sld, debouncedNewAlias).then(b => {
-      setIsNewAliasInUse(b)
-    })).catch(e => { console.error(e) })
+    tryCatch(async () => {
+      await client.isAliasInUse(sld, debouncedNewAlias).then(b => {
+        setIsNewAliasInUse(b)
+      })
+    }).catch(e => { console.error(e) })
   }, [debouncedNewAlias, client, sld])
 
   const upsert = async (alias: string, forward: string, makePublic: boolean): Promise<void> => {
@@ -190,7 +192,7 @@ const Home: React.FC = () => {
       const separator = ethers.utils.toUtf8Bytes(await client.eas.SEPARATOR())
       const data = ethers.utils.concat([ethers.utils.toUtf8Bytes(alias), separator, ethers.utils.toUtf8Bytes(forward), separator, signature])
       const commitment = ethers.utils.keccak256(data)
-      if (publicAliases.indexOf(alias) >= 0) {
+      if (publicAliases.includes(alias)) {
         makePublic = false
       }
       const tx = await client.activate(sld, newAlias, commitment, makePublic)
@@ -253,20 +255,20 @@ const Home: React.FC = () => {
       <Desc>
         {publicAliases.length > 0 && (<>
           <BaseText>You can reach the domain owner at:</BaseText>
-          {publicAliases.map((a, i) => {
-            return <BaseText style={{ background: '#eee', padding: 8 }} key={`email-${a}-${i}`}>{a}@{sld}.{config.tld}</BaseText>
-          })}
-        </>)}
+            {publicAliases.map((a, i) => {
+              return <BaseText style={{ background: '#eee', padding: 8 }} key={`email-${a}-${i}`}>{a}@{sld}.{config.tld}</BaseText>
+            })}
+          </>)}
         {numAlias > 0 && publicAliases.length === 0 && (
-        <BaseText>
-          The domain owner chose not to disclose any email address. Please ask the owner for more information.
-        </BaseText>
+          <BaseText>
+            The domain owner chose not to disclose any email address. Please ask the owner for more information.
+          </BaseText>
         )}
         <SmallTextGrey>owner: {owner}</SmallTextGrey>
         {numAlias === 0 && (
-        <BaseText>
-          The domain owner has not activated any email
-        </BaseText>
+          <BaseText>
+            The domain owner has not activated any email
+          </BaseText>
         )}
 
       </Desc>
@@ -275,66 +277,66 @@ const Home: React.FC = () => {
       {isOwner && <Desc>
         <FlexRow style={{ gap: 16, background: '#eee', padding: 8, alignItems: 'center' }}>
           <BaseText> + </BaseText>
-          <AliasInputBox value={newAlias} onChange={({ target: { value } }) => setNewAlias(value)}/>
+          <AliasInputBox value={newAlias} onChange={({ target: { value } }) => { setNewAlias(value) }}/>
           <SmallTextGrey>@{sld}.{config.tld}</SmallTextGrey>
           <BaseText style={{ whiteSpace: 'nowrap' }}>FORWARD TO</BaseText>
-          <InputBox type={'email'} value={newForward} onChange={({ target: { value } }) => setNewForward(value)}/>
+          <InputBox type={'email'} value={newForward} onChange={({ target: { value } }) => { setNewForward(value) }}/>
           <Button disabled={pending} $width={'auto'} onClick={async () => { await upsert(newAlias, newForward, newMakePublic) }}>
             {pending ? <Loading/> : (isNewAliasInUse ? 'UPDATE' : 'ADD')}
           </Button>
         </FlexRow>
 
-        {!pending && numHiddenAliases > 0 && (
-        <BaseText>Plus {numHiddenAliases} more private aliases</BaseText>
-        )}
+          {!pending && numHiddenAliases > 0 && (
+          <BaseText>Plus {numHiddenAliases} more private aliases</BaseText>
+          )}
 
-        {initializing && <><Loading/> Loading Email Configurations...</>}
+          {initializing && <><Loading/> Loading Email Configurations...</>}
 
         <BaseText style={{ margin: 16 }}>Your Existing Aliases</BaseText>
 
-        {publicAliases.map((alias: string, i: number) => {
-          if (!isPublicAliasesInUse[i]) {
-            return <React.Fragment key={`alias-${alias}-${i}`}></React.Fragment>
-          }
-          return (
-            <FlexRow key={`alias-${alias}-${i}`} style={{
-              gap: 16,
-              background: '#eee',
-              minHeight: 51,
-              padding: 8,
-              alignItems: 'center',
-              position: 'relative'
-            }}>
-              <BaseText> - </BaseText>
-              <AliasInputBox style={{ cursor: 'disabled', backgroundColor: '#ccc' }} value={alias} disabled />
-              <SmallTextGrey>@{sld}.{config.tld}</SmallTextGrey>
-              <BaseText style={{ whiteSpace: 'nowrap' }}>FORWARD TO</BaseText>
-              <InputBox placeholder={'****'} type={'email'}
-                        value={forwards[i]}
-                        onChange={({ target: { value } }) => setForwards(e => [...e.slice(0, i), value, e.slice(i + 1)])}
-              />
-              {isPublicAliasesValid[i] === AliasValidity.ALIAS_VALIDITY_VALID && <>
-                <Button disabled={pending} $width={'auto'} onClick={async () => { await upsert(alias, newForward, true) }}>
-                  {pending ? <Loading/> : 'UPDATE' }
-                </Button>
-                <Button disabled={pending} $width={'auto'} onClick={async () => { await del(alias) }}>
-                  {pending ? <Loading/> : 'DELETE' }
-                </Button>
-              </>}
-              {isPublicAliasesValid[i] === AliasValidity.ALIAS_VALIDITY_UNKNOWN || isPublicAliasesValid[i] === undefined && <>
-                <Loading/>
-              </>}
-              {isPublicAliasesValid[i] === AliasValidity.ALIAS_VALIDITY_INVALID && <>
-                <Button disabled={pending} $width={'auto'} onClick={async () => { await upsert(alias, forwards[i], true) }}>
-                  {pending ? <Loading/> : 'ACTIVATE' }
-                </Button>
-                <FloatingText>This activation of this domain is not completed</FloatingText>
-              </>}
-            </FlexRow>
-          )
-        })}
+          {publicAliases.map((alias: string, i: number) => {
+            if (!isPublicAliasesInUse[i]) {
+              return <React.Fragment key={`alias-${alias}-${i}`}></React.Fragment>
+            }
+            return (
+              <FlexRow key={`alias-${alias}-${i}`} style={{
+                gap: 16,
+                background: '#eee',
+                minHeight: 51,
+                padding: 8,
+                alignItems: 'center',
+                position: 'relative'
+              }}>
+                <BaseText> - </BaseText>
+                <AliasInputBox style={{ cursor: 'disabled', backgroundColor: '#ccc' }} value={alias} disabled />
+                <SmallTextGrey>@{sld}.{config.tld}</SmallTextGrey>
+                <BaseText style={{ whiteSpace: 'nowrap' }}>FORWARD TO</BaseText>
+                <InputBox placeholder={'****'} type={'email'}
+                            value={forwards[i]}
+                            onChange={({ target: { value } }) => { setForwards(e => [...e.slice(0, i), value, e.slice(i + 1)]) }}
+                  />
+                {isPublicAliasesValid[i] === AliasValidity.ALIAS_VALIDITY_VALID && <>
+                  <Button disabled={pending} $width={'auto'} onClick={async () => { await upsert(alias, newForward, true) }}>
+                    {pending ? <Loading/> : 'UPDATE' }
+                  </Button>
+                  <Button disabled={pending} $width={'auto'} onClick={async () => { await del(alias) }}>
+                    {pending ? <Loading/> : 'DELETE' }
+                  </Button>
+                  </>}
+                {isPublicAliasesValid[i] === AliasValidity.ALIAS_VALIDITY_UNKNOWN || isPublicAliasesValid[i] === undefined && <>
+                  <Loading/>
+                  </>}
+                {isPublicAliasesValid[i] === AliasValidity.ALIAS_VALIDITY_INVALID && <>
+                  <Button disabled={pending} $width={'auto'} onClick={async () => { await upsert(alias, forwards[i], true) }}>
+                    {pending ? <Loading/> : 'ACTIVATE' }
+                  </Button>
+                  <FloatingText>This activation of this domain is not completed</FloatingText>
+                  </>}
+              </FlexRow>
+            )
+          })}
 
-      </Desc>}
+        </Desc>}
       <div style={{ height: 320 }}/>
       <Feedback/>
     </Container>)

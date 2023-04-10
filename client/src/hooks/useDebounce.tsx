@@ -1,7 +1,6 @@
-import type React from 'react'
 import { useEffect, useState } from 'react'
 
-const useDebounce: React.FC = (value, delay: number) => {
+const useDebounce = <T,>(value: T, delay: number): T => {
   const [debouncedValue, setDebouncedValue] = useState(value)
 
   useEffect(() => {
