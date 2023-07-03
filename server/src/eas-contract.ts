@@ -19,6 +19,19 @@ export async function getOwner (sld: string): Promise<string> {
   return r.toLowerCase()
 }
 
+export async function isOwnerOrAllowedMaintainer (sld: string, address: string): Promise<boolean> {
+  const isMaintainer = await eas.hasRole(await eas.MAINTAINER_ROLE(), address)
+  const allowMaintainer = await eas.getAllowMaintainerAccess(ethers.utils.id(sld))
+  if (allowMaintainer && isMaintainer) {
+    return true
+  }
+  const owner = await getOwner(sld)
+  if (owner.toLowerCase() === address.toLowerCase()) {
+    return true
+  }
+  return false
+}
+
 interface VerifyCommitmentResult {
   actualCommitment?: string
   expectedCommitment?: string
@@ -46,8 +59,7 @@ export async function verifySignature ({ signature, sld, alias, forwardAddress }
   const digest = ethers.utils.hashMessage(config.message(sld, alias, forwardAddress))
   const address = ethers.utils.recoverAddress(digest, signature)
   try {
-    const owner = await getOwner(sld)
-    return owner === address.toLowerCase()
+    return await isOwnerOrAllowedMaintainer(sld, address)
   } catch (ex) {
     console.error(ex)
     return false
