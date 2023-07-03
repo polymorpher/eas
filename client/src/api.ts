@@ -46,7 +46,8 @@ export interface Client {
   deactivateAll: (sld: string) => Promise<ContractTransaction>
   buildSignature: (sld: string, alias: string, forward: string) => Promise<string>
   isAliasInUse: (sld: string, alias: string) => Promise<boolean>
-
+  hasMaintainerRole: (address: string) => Promise<boolean>
+  getAllowMaintainerAccess: (sld: string) => Promise<boolean>
 }
 export const buildClient = (provider?, signer?): Client => {
   const etherProvider = provider ?? new ethers.providers.StaticJsonRpcProvider(config.defaultRpc)
@@ -75,7 +76,7 @@ export const buildClient = (provider?, signer?): Client => {
     dc,
     getOwner: async (sld: string) => {
       const c = await dc()
-      return c.ownerOf(sld)
+      return await c.ownerOf(sld)
     },
     getExpirationTime: async (sld: string) => {
       const c = await dc()
@@ -108,6 +109,15 @@ export const buildClient = (provider?, signer?): Client => {
     buildSignature: async (sld: string, alias: string, forward: string) => {
       const msg = config.message(sld, alias, forward)
       return await eas.signer.signMessage(msg)
+    },
+    getAllowMaintainerAccess: async (sld: string): Promise<boolean> => {
+      return await eas.getAllowMaintainerAccess(ethers.utils.id(sld))
+    },
+    hasMaintainerRole: async (address: string): Promise<boolean> => {
+      if (!address) {
+        return false
+      }
+      return await eas.hasRole(await eas.MAINTAINER_ROLE(), address)
     }
   }
 }

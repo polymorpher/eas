@@ -12,6 +12,7 @@ import { buildClient, apis } from './api'
 import { TailSpin } from 'react-loading-icons'
 import { Feedback } from './components/Misc'
 import useDebounce from './hooks/useDebounce'
+import { useTryCatch } from './hooks/useTryCatch'
 
 const Container = styled(Main)`
   margin: 0 auto;
@@ -102,50 +103,44 @@ const Home: React.FC = () => {
   const [client, setClient] = useState(buildClient())
   const { data: signer } = useSigner()
   const { connect } = useConnect({ connector: new InjectedConnector() })
-  const [pending, setPending] = useState(true)
-  const [initializing, setInitializing] = useState(true)
+  const [allowMaintainerAccess, setAllowMaintainerAccess] = useState<boolean>(true)
+  const [isMaintainer, setIsMaintainer] = useState<boolean>(true)
+  const { pending, initializing, tryCatch } = useTryCatch()
 
   const sld = getSld()
   const numHiddenAliases = numAlias - isPublicAliasesInUse.filter(e => e).length -
       isPublicAliasesValid.filter(e => e === AliasValidity.ALIAS_VALIDITY_INVALID || e === AliasValidity.ALIAS_VALIDITY_UNKNOWN).length
 
-  const tryCatch = async (f: () => Promise<any>, isInit?: boolean): Promise<void> => {
-    try {
-      if (isInit) {
-        setInitializing(true)
-      } else {
-        setPending(true)
-      }
-      await f()
-    } catch (ex) {
-      console.error(ex)
-      // @ts-expect-error catch error in response
-      if (ex?.response?.error) {
-        // @ts-expect-error catch error in response
-        toast.error(`Request failed. Error: ${ex?.response?.error}`)
-      }
-      toast.info('Request cancelled')
-    } finally {
-      if (isInit) {
-        setInitializing(false)
-      } else {
-        setPending(false)
-      }
+  const allowAccess = (): boolean => {
+    if (owner?.toLowerCase() === address?.toLowerCase()) {
+      return true
     }
+    if (allowMaintainerAccess && isMaintainer) {
+      return true
+    }
+    return false
   }
 
   useEffect(() => {
     if (!client?.eas?.signer) {
       return
     }
-    tryCatch(async () => {
-      await Promise.all(publicAliases.map(async e => await client.isAliasInUse(sld, e))).then(rs => { setIsPublicAliasesInUse(rs) })
+    tryCatch(async () => await Promise.all([
+      Promise.all(publicAliases.map(async e => client.isAliasInUse(sld, e))).then(rs => { setIsPublicAliasesInUse(rs) }),
       // TODO: Doesn't work for regex alias. Need to implement a more power API at server to get all aliases and do regex matching on demand
-      await Promise.all(publicAliases.map(async e => await apis.check(sld, e))).then(rs2 => {
+      Promise.all(publicAliases.map(async e => await apis.check(sld, e))).then(rs2 => {
         setIsPublicAliasesValid(rs2.map(e => e ? AliasValidity.ALIAS_VALIDITY_VALID : AliasValidity.ALIAS_VALIDITY_INVALID))
-      })
-    }, true).catch(ex => { console.error(ex) })
-  }, [sld, publicAliases, client])
+      }),
+      client.getAllowMaintainerAccess(sld).then(e => { setAllowMaintainerAccess(e) })
+    ]), true).catch(ex => { console.error(ex) })
+  }, [tryCatch, sld, publicAliases, client])
+
+  useEffect(() => {
+    if (!client) {
+      return
+    }
+    client.hasMaintainerRole(address).then(e => { setIsMaintainer(e) }).catch(console.error)
+  }, [address, client])
 
   useEffect(() => {
     if (!provider || !signer) {
@@ -169,7 +164,7 @@ const Home: React.FC = () => {
         client.getNumAlias(sld).then(e => { setNumAlias(e) })
       ])
     }, true).catch(e => { console.error(e) })
-  }, [client, sld])
+  }, [tryCatch, client, sld])
 
   useEffect(() => {
     if (!debouncedNewAlias || !client || !sld) {
@@ -180,7 +175,7 @@ const Home: React.FC = () => {
         setIsNewAliasInUse(b)
       })
     }).catch(e => { console.error(e) })
-  }, [debouncedNewAlias, client, sld])
+  }, [tryCatch, debouncedNewAlias, client, sld])
 
   const upsert = async (alias: string, forward: string, makePublic: boolean): Promise<void> => {
     if (!EMAIL_REGEX.test(forward)) {
@@ -195,7 +190,7 @@ const Home: React.FC = () => {
       if (publicAliases.includes(alias)) {
         makePublic = false
       }
-      const tx = await client.activate(sld, newAlias, commitment, makePublic)
+      const tx = await client.activate(sld, alias, commitment, makePublic)
       toast.info(SuccessWithExplorerLink({
         txHash: tx.hash,
         message: 'Activated on-chain. Completing action on mail server...'
@@ -237,8 +232,6 @@ const Home: React.FC = () => {
 
   const expired = expirationTime > 0 && (expirationTime - Date.now() < 0)
 
-  const isOwner = address && address.toLowerCase() === owner.toLowerCase()
-
   if (expired) {
     return <Container>
       <FlexRow style={{ alignItems: 'baseline', marginTop: 120 }}>
@@ -274,7 +267,7 @@ const Home: React.FC = () => {
       </Desc>
       {!isConnected && <SmallText>Own this domain? Connect your wallet to setup emails.</SmallText>}
       {!isConnected && <Button onClick={connect} style={{ width: 'auto' }}>CONNECT WALLET</Button>}
-      {isOwner && <Desc>
+      {address && (allowAccess()) && <Desc>
         <FlexRow style={{ gap: 16, background: '#eee', padding: 8, alignItems: 'center' }}>
           <BaseText> + </BaseText>
           <AliasInputBox value={newAlias} onChange={({ target: { value } }) => { setNewAlias(value) }}/>
