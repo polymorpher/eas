@@ -1,11 +1,20 @@
 import axios, { type AxiosError, type AxiosResponse } from 'axios'
 import config from '../config'
 import { StatusCodes } from 'http-status-codes'
+import { pRateLimit } from 'p-ratelimit'
 
 const base = axios.create({
   baseURL: config.improvMX.apiRoot,
   timeout: 10000,
   headers: { Authorization: `Basic api:${config.improvMX.key}` }
+})
+
+// https://help.improvmx.com/getting-started/improvmx-api-rate-limits
+const readLimit = pRateLimit({
+  interval: 30000,
+  rate: 70,
+  concurrency: 3,
+  maxDelay: 5000
 })
 
 export async function addDomain (sld: string, notificationEmail?: string): Promise<any> {
@@ -19,7 +28,7 @@ interface DomainInfo {
 }
 export async function getDomain (sld: string): Promise<DomainInfo | null> {
   try {
-    const { data } = await base.get(`/domains/${sld}.${config.TLD}`)
+    const { data } = await readLimit(async () => await base.get(`/domains/${sld}.${config.TLD}`))
     return data
   } catch (ex) {
     if ((ex as AxiosError)?.response?.status === 404) {
@@ -54,7 +63,7 @@ export async function listAlias (sld: string): Promise<AliasEntry[]> {
 }
 
 export async function getAlias (sld: string, alias: string): Promise<AliasEntry> {
-  const { data } = await base.get(`/domains/${sld}.${config.TLD}/aliases/${alias}`)
+  const { data } = await readLimit(async () => await base.get(`/domains/${sld}.${config.TLD}/aliases/${alias}`))
   return data?.alias
 }
 
