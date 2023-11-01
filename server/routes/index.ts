@@ -23,7 +23,7 @@ const router = express.Router()
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const limiter = (args?) => rateLimit({
   windowMs: 1000 * 60,
-  max: 60,
+  max: 600,
   keyGenerator: req => req.fingerprint?.hash ?? '',
   ...args
 })

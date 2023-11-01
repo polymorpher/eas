@@ -6,6 +6,7 @@ const config = {
   explorer (txHash: string): string {
     return (process.env.EXPLORER_URL ?? 'https://explorer.harmony.one/#/tx/{{txId}}').replace('{{txId}}', txHash)
   },
+  chainId: Number(process.env.CHAIN_ID ?? '1666600000'),
   defaultRpc: process.env.DEFAULT_RPC ?? 'https://api.harmony.one',
   easServer: process.env.EAS_SERVER ?? 'https://1ns-eas.hiddenstate.xyz',
   tld: process.env.TLD ?? 'country',

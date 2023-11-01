@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useAccount, useConnect, useProvider, useSigner } from 'wagmi'
+import { useAccount, useConnect, useNetwork, useProvider, useSigner, useSwitchNetwork } from 'wagmi'
 import { InjectedConnector } from 'wagmi/connectors/injected'
 import { ethers } from 'ethers'
 import config from '../config'
@@ -88,6 +88,8 @@ const SuccessWithExplorerLink = ({ message, txHash }: SuccessWithExplorerLinkPar
 const Home: React.FC = () => {
   const { address, isConnected } = useAccount()
   const provider = useProvider()
+  const { chain } = useNetwork()
+  const { switchNetwork } = useSwitchNetwork()
   const [expirationTime, setExpirationTime] = useState(0)
   const [publicAliases, setPublicAliases] = useState<string[]>([])
   const [forwards, setForwards] = useState<string[]>([])
@@ -120,6 +122,15 @@ const Home: React.FC = () => {
     }
     return false
   }
+
+  useEffect(() => {
+    if (!isConnected || !chain || !switchNetwork) {
+      return
+    }
+    if (chain.id !== config.chainId) {
+      switchNetwork(config.chainId)
+    }
+  }, [isConnected, chain, switchNetwork])
 
   useEffect(() => {
     if (!client?.eas?.signer) {
