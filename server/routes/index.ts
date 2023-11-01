@@ -6,7 +6,18 @@ import { verifySignature, verifyCommitment, verifyDeactivation, isAllDeactivated
 import { activate, deactivate, deactivateAll } from '../src/eas'
 import { getAlias } from '../src/eas-improvmx'
 import { type AxiosResponse } from 'axios'
+import { LRUCache } from 'lru-cache'
 // import appConfig from '../config'
+
+const cache = new LRUCache({
+  max: 5000,
+  maxSize: 50000,
+  sizeCalculation: (value, key) => {
+    return 1
+  },
+  ttl: 1000 * 60
+
+})
 
 const router = express.Router()
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -55,8 +66,15 @@ router.post('/check-alias',
   async (req, res) => {
     const { sld, alias } = req.body
     console.log('[/check-alias]', { alias, sld })
+    const key = `mx:${sld}:${alias}`
+    const v = cache.get(key)
+    if (v != null) {
+      return res.json({ exist: true })
+    }
+
     try {
       await getAlias(sld, alias)
+      cache.set(key, true)
       res.json({ exist: true })
     } catch (ex: any) {
       const r = ex?.response as AxiosResponse
