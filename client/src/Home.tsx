@@ -5,7 +5,7 @@ import { ethers } from 'ethers'
 import config from '../config'
 import { Button, Input, LinkWrarpper } from './components/Controls'
 import { BaseText, Desc, FloatingText, SmallText, Title } from './components/Text'
-import { FlexColumn, FlexRow, Main } from './components/Layout'
+import { FlexColumn, FlexRow, Main, Row } from './components/Layout'
 import styled from 'styled-components'
 import { toast } from 'react-toastify'
 import { buildClient, apis } from './api'
@@ -30,6 +30,8 @@ const SmallTextGrey = styled(SmallText)`
 
 // RFC 2822
 const EMAIL_REGEX = /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/
+
+const PAGE_SIZE = 5
 
 const getSld = (): string => {
   if (!window) {
@@ -93,9 +95,15 @@ const Home: React.FC = () => {
   const [expirationTime, setExpirationTime] = useState(0)
   const [publicAliases, setPublicAliases] = useState<string[]>([])
   const [forwards, setForwards] = useState<string[]>([])
+
+  const [page, setPage] = useState<number>(0)
+  const publicAliasSlice = publicAliases.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  // for the current slice
   const [isPublicAliasesInUse, setIsPublicAliasesInUse] = useState<boolean[]>([])
   const [isPublicAliasesValid, setIsPublicAliasesValid] = useState<AliasValidity[]>([])
+
   const [numAlias, setNumAlias] = useState(0)
+
   const [owner, setOwner] = useState('')
   const [newAlias, setNewAlias] = useState('hello')
   const debouncedNewAlias = useDebounce<string>(newAlias, 500)
@@ -136,15 +144,16 @@ const Home: React.FC = () => {
     if (!client?.eas?.signer) {
       return
     }
+    const slice = publicAliases.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
     tryCatch(async () => await Promise.all([
-      Promise.all(publicAliases.map(async e => client.isAliasInUse(sld, e))).then(rs => { setIsPublicAliasesInUse(rs) }),
+      Promise.all(slice.map(async e => client.isAliasInUse(sld, e))).then(rs => { setIsPublicAliasesInUse(rs) }),
       // TODO: Doesn't work for regex alias. Need to implement a more power API at server to get all aliases and do regex matching on demand
-      Promise.all(publicAliases.map(async e => await apis.check(sld, e))).then(rs2 => {
+      Promise.all(slice.map(async e => await apis.check(sld, e))).then(rs2 => {
         setIsPublicAliasesValid(rs2.map(e => e ? AliasValidity.ALIAS_VALIDITY_VALID : AliasValidity.ALIAS_VALIDITY_INVALID))
       }),
       client.getAllowMaintainerAccess(sld).then(e => { setAllowMaintainerAccess(e) })
     ]), true).catch(ex => { console.error(ex) })
-  }, [tryCatch, sld, publicAliases, client])
+  }, [tryCatch, sld, publicAliases, client, page])
 
   useEffect(() => {
     if (!client) {
@@ -298,7 +307,7 @@ const Home: React.FC = () => {
 
         <BaseText style={{ margin: 16 }}>Your Existing Aliases</BaseText>
 
-          {publicAliases.map((alias: string, i: number) => {
+          {publicAliasSlice.map((alias: string, i: number) => {
             if (!isPublicAliasesInUse[i]) {
               return <React.Fragment key={`alias-${alias}-${i}`}></React.Fragment>
             }
@@ -339,7 +348,13 @@ const Home: React.FC = () => {
               </FlexRow>
             )
           })}
-
+        <Row style={{ justifyContent: 'flex-end' }}>
+          <FlexRow style={{ alignItems: 'center', gap: 8 }}>
+            {page >= 1 && <Button $width={'40px'} onClick={() => setPage(e => e - 1)}>{'<'}</Button>}
+            <BaseText>Page {page + 1} / {Math.ceil(publicAliases.length / PAGE_SIZE)} </BaseText>
+            {page < Math.ceil(publicAliases.length / PAGE_SIZE) - 1 && <Button $width={'40px'} onClick={() => setPage(e => e + 1)}>{'>'}</Button>}
+          </FlexRow>
+        </Row>
         </Desc>}
       <div style={{ height: 320 }}/>
       <Feedback/>
