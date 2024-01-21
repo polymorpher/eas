@@ -1,0 +1,15 @@
+[Unit]
+Description=Email Alias Service
+Documentation=https://github.com/polymorpher/eas/
+After=network.target
+
+[Service]
+Environment=PORT=80 HTTPS_PORT=443
+Type=simple
+User=worker
+WorkingDirectory=/opt/eas/server
+ExecStart=/bin/bash -c "source ~/.profile;/usr/bin/node --loader ts-node/esm ./bin/run.ts"
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
