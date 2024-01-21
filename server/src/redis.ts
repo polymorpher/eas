@@ -1,7 +1,7 @@
-import { createClient } from 'redis'
-import config from '../config'
+import { createClient, type RedisClientType } from 'redis'
+import config from '../config.js'
 
-export let redisClient
+export let redisClient: RedisClientType
 
 export const initRedis = async (): Promise<boolean> => {
   if (redisClient === undefined) {

@@ -1,5 +1,5 @@
 import axios, { type AxiosError, type AxiosResponse } from 'axios'
-import config from '../config'
+import config from '../config.js'
 import { StatusCodes } from 'http-status-codes'
 import { pRateLimit } from 'p-ratelimit'
 

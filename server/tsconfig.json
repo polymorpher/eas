@@ -1,14 +1,22 @@
 {
-    "compilerOptions": {
-      "target": "es2020",
-      "module": "commonjs",
-      "strict": true,
-      "esModuleInterop": true,
-      "outDir": "dist",
-      "declaration": true,
-      "resolveJsonModule": true,
-      "noImplicitAny": false
-    },
-    "include": ["./routes", "./", "./src"]
-  }
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "baseUrl": "./",
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "declaration": true,
+    "resolveJsonModule": true,
+    "noImplicitAny": false,
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "*.ts": [
+        "*"
+      ]
+    }
+  },
+  "include": ["./routes", "./", "./src","./script"]
+}
   

@@ -1,10 +1,11 @@
 import express from 'express'
 import { StatusCodes } from 'http-status-codes'
 import { body } from 'express-validator'
-import rateLimit from 'express-rate-limit'
-import { verifySignature, verifyCommitment, verifyDeactivation, isAllDeactivated } from '../src/eas-contract'
-import { activate, deactivate, deactivateAll } from '../src/eas'
-import { getAlias } from '../src/eas-improvmx'
+import rateLimit, { type Options as RLOptions, type RateLimitRequestHandler } from 'express-rate-limit'
+
+import { verifySignature, verifyCommitment, verifyDeactivation, isAllDeactivated } from '../src/eas-contract.js'
+import { activate, deactivate, deactivateAll } from '../src/eas.js'
+import { getAlias } from '../src/eas-improvmx.js'
 import { type AxiosResponse } from 'axios'
 import { LRUCache } from 'lru-cache'
 // import appConfig from '../config'
@@ -21,7 +22,7 @@ const cache = new LRUCache({
 
 const router = express.Router()
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-const limiter = (args?) => rateLimit({
+const limiter = (args?:  Partial<RLOptions>): RateLimitRequestHandler => rateLimit({
   windowMs: 1000 * 60,
   max: 600,
   keyGenerator: req => req.fingerprint?.hash ?? '',

@@ -22,7 +22,7 @@ const config = {
 
   // redis[s]://[[username][:password]@][host][:port][/db-number]
   redis: { url: process.env.REDIS_URL },
-  message (sld, alias, forwardAddress): string {
+  message (sld: string, alias: string, forwardAddress: string): string {
     return `You are about to authorize forwarding all emails sent to [${alias}@${sld}.${config.TLD}] to [${forwardAddress}] instead`
   }
 }

@@ -3,62 +3,29 @@
 /* eslint-disable */
 import type {
   BaseContract,
-  BigNumber,
   BigNumberish,
   BytesLike,
-  CallOverrides,
-  ContractTransaction,
-  Overrides,
-  PopulatedTransaction,
-  Signer,
-  utils,
-} from "ethers";
-import type {
   FunctionFragment,
   Result,
+  Interface,
   EventFragment,
-} from "@ethersproject/abi";
-import type { Listener, Provider } from "@ethersproject/providers";
+  AddressLike,
+  ContractRunner,
+  ContractMethod,
+  Listener,
+} from "ethers";
 import type {
-  TypedEventFilter,
-  TypedEvent,
+  TypedContractEvent,
+  TypedDeferredTopicFilter,
+  TypedEventLog,
+  TypedLogDescription,
   TypedListener,
-  OnEvent,
-  PromiseOrValue,
+  TypedContractMethod,
 } from "../../common";
 
-export interface EASInterface extends utils.Interface {
-  functions: {
-    "DEFAULT_ADMIN_ROLE()": FunctionFragment;
-    "MAINTAINER_ROLE()": FunctionFragment;
-    "SEPARATOR()": FunctionFragment;
-    "activate(string,bytes32,bytes32,string)": FunctionFragment;
-    "configs(bytes32)": FunctionFragment;
-    "dc()": FunctionFragment;
-    "deactivate(string,bytes32)": FunctionFragment;
-    "deactivateAll(string)": FunctionFragment;
-    "getAllowMaintainerAccess(bytes32)": FunctionFragment;
-    "getCommitment(bytes32,bytes32)": FunctionFragment;
-    "getNumAlias(bytes32)": FunctionFragment;
-    "getPublicAliases(bytes32)": FunctionFragment;
-    "getRoleAdmin(bytes32)": FunctionFragment;
-    "grantRole(bytes32,address)": FunctionFragment;
-    "hasRole(bytes32,address)": FunctionFragment;
-    "maxNumAlias()": FunctionFragment;
-    "renounceRole(bytes32,address)": FunctionFragment;
-    "revokeRole(bytes32,address)": FunctionFragment;
-    "setDc(address)": FunctionFragment;
-    "setMaxNumAlias(uint256)": FunctionFragment;
-    "setPublicAliases(string,string[])": FunctionFragment;
-    "setUpgradedFrom(address)": FunctionFragment;
-    "supportsInterface(bytes4)": FunctionFragment;
-    "toggleMaintainerAccess(string)": FunctionFragment;
-    "upgradedFrom()": FunctionFragment;
-    "verify(string,bytes32,string,string,bytes)": FunctionFragment;
-  };
-
+export interface EASInterface extends Interface {
   getFunction(
-    nameOrSignatureOrTopic:
+    nameOrSignature:
       | "DEFAULT_ADMIN_ROLE"
       | "MAINTAINER_ROLE"
       | "SEPARATOR"
@@ -87,6 +54,10 @@ export interface EASInterface extends utils.Interface {
       | "verify"
   ): FunctionFragment;
 
+  getEvent(
+    nameOrSignatureOrTopic: "RoleAdminChanged" | "RoleGranted" | "RoleRevoked"
+  ): EventFragment;
+
   encodeFunctionData(
     functionFragment: "DEFAULT_ADMIN_ROLE",
     values?: undefined
@@ -98,53 +69,45 @@ export interface EASInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "SEPARATOR", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "activate",
-    values: [
-      PromiseOrValue<string>,
-      PromiseOrValue<BytesLike>,
-      PromiseOrValue<BytesLike>,
-      PromiseOrValue<string>
-    ]
+    values: [string, BytesLike, BytesLike, string]
   ): string;
-  encodeFunctionData(
-    functionFragment: "configs",
-    values: [PromiseOrValue<BytesLike>]
-  ): string;
+  encodeFunctionData(functionFragment: "configs", values: [BytesLike]): string;
   encodeFunctionData(functionFragment: "dc", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "deactivate",
-    values: [PromiseOrValue<string>, PromiseOrValue<BytesLike>]
+    values: [string, BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "deactivateAll",
-    values: [PromiseOrValue<string>]
+    values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "getAllowMaintainerAccess",
-    values: [PromiseOrValue<BytesLike>]
+    values: [BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getCommitment",
-    values: [PromiseOrValue<BytesLike>, PromiseOrValue<BytesLike>]
+    values: [BytesLike, BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getNumAlias",
-    values: [PromiseOrValue<BytesLike>]
+    values: [BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getPublicAliases",
-    values: [PromiseOrValue<BytesLike>]
+    values: [BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getRoleAdmin",
-    values: [PromiseOrValue<BytesLike>]
+    values: [BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "grantRole",
-    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
+    values: [BytesLike, AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "hasRole",
-    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
+    values: [BytesLike, AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "maxNumAlias",
@@ -152,35 +115,32 @@ export interface EASInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "renounceRole",
-    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
+    values: [BytesLike, AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "revokeRole",
-    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
+    values: [BytesLike, AddressLike]
   ): string;
-  encodeFunctionData(
-    functionFragment: "setDc",
-    values: [PromiseOrValue<string>]
-  ): string;
+  encodeFunctionData(functionFragment: "setDc", values: [AddressLike]): string;
   encodeFunctionData(
     functionFragment: "setMaxNumAlias",
-    values: [PromiseOrValue<BigNumberish>]
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "setPublicAliases",
-    values: [PromiseOrValue<string>, PromiseOrValue<string>[]]
+    values: [string, string[]]
   ): string;
   encodeFunctionData(
     functionFragment: "setUpgradedFrom",
-    values: [PromiseOrValue<string>]
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "supportsInterface",
-    values: [PromiseOrValue<BytesLike>]
+    values: [BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "toggleMaintainerAccess",
-    values: [PromiseOrValue<string>]
+    values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "upgradedFrom",
@@ -188,13 +148,7 @@ export interface EASInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "verify",
-    values: [
-      PromiseOrValue<string>,
-      PromiseOrValue<BytesLike>,
-      PromiseOrValue<string>,
-      PromiseOrValue<string>,
-      PromiseOrValue<BytesLike>
-    ]
+    values: [string, BytesLike, string, string, BytesLike]
   ): string;
 
   decodeFunctionResult(
@@ -271,765 +225,418 @@ export interface EASInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "verify", data: BytesLike): Result;
-
-  events: {
-    "RoleAdminChanged(bytes32,bytes32,bytes32)": EventFragment;
-    "RoleGranted(bytes32,address,address)": EventFragment;
-    "RoleRevoked(bytes32,address,address)": EventFragment;
-  };
-
-  getEvent(nameOrSignatureOrTopic: "RoleAdminChanged"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "RoleGranted"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "RoleRevoked"): EventFragment;
 }
 
-export interface RoleAdminChangedEventObject {
-  role: string;
-  previousAdminRole: string;
-  newAdminRole: string;
+export namespace RoleAdminChangedEvent {
+  export type InputTuple = [
+    role: BytesLike,
+    previousAdminRole: BytesLike,
+    newAdminRole: BytesLike
+  ];
+  export type OutputTuple = [
+    role: string,
+    previousAdminRole: string,
+    newAdminRole: string
+  ];
+  export interface OutputObject {
+    role: string;
+    previousAdminRole: string;
+    newAdminRole: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
-export type RoleAdminChangedEvent = TypedEvent<
-  [string, string, string],
-  RoleAdminChangedEventObject
->;
 
-export type RoleAdminChangedEventFilter =
-  TypedEventFilter<RoleAdminChangedEvent>;
-
-export interface RoleGrantedEventObject {
-  role: string;
-  account: string;
-  sender: string;
+export namespace RoleGrantedEvent {
+  export type InputTuple = [
+    role: BytesLike,
+    account: AddressLike,
+    sender: AddressLike
+  ];
+  export type OutputTuple = [role: string, account: string, sender: string];
+  export interface OutputObject {
+    role: string;
+    account: string;
+    sender: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
-export type RoleGrantedEvent = TypedEvent<
-  [string, string, string],
-  RoleGrantedEventObject
->;
 
-export type RoleGrantedEventFilter = TypedEventFilter<RoleGrantedEvent>;
-
-export interface RoleRevokedEventObject {
-  role: string;
-  account: string;
-  sender: string;
+export namespace RoleRevokedEvent {
+  export type InputTuple = [
+    role: BytesLike,
+    account: AddressLike,
+    sender: AddressLike
+  ];
+  export type OutputTuple = [role: string, account: string, sender: string];
+  export interface OutputObject {
+    role: string;
+    account: string;
+    sender: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
-export type RoleRevokedEvent = TypedEvent<
-  [string, string, string],
-  RoleRevokedEventObject
->;
-
-export type RoleRevokedEventFilter = TypedEventFilter<RoleRevokedEvent>;
 
 export interface EAS extends BaseContract {
-  connect(signerOrProvider: Signer | Provider | string): this;
-  attach(addressOrName: string): this;
-  deployed(): Promise<this>;
+  connect(runner?: ContractRunner | null): EAS;
+  waitForDeployment(): Promise<this>;
 
   interface: EASInterface;
 
-  queryFilter<TEvent extends TypedEvent>(
-    event: TypedEventFilter<TEvent>,
+  queryFilter<TCEvent extends TypedContractEvent>(
+    event: TCEvent,
     fromBlockOrBlockhash?: string | number | undefined,
     toBlock?: string | number | undefined
-  ): Promise<Array<TEvent>>;
+  ): Promise<Array<TypedEventLog<TCEvent>>>;
+  queryFilter<TCEvent extends TypedContractEvent>(
+    filter: TypedDeferredTopicFilter<TCEvent>,
+    fromBlockOrBlockhash?: string | number | undefined,
+    toBlock?: string | number | undefined
+  ): Promise<Array<TypedEventLog<TCEvent>>>;
 
-  listeners<TEvent extends TypedEvent>(
-    eventFilter?: TypedEventFilter<TEvent>
-  ): Array<TypedListener<TEvent>>;
-  listeners(eventName?: string): Array<Listener>;
-  removeAllListeners<TEvent extends TypedEvent>(
-    eventFilter: TypedEventFilter<TEvent>
-  ): this;
-  removeAllListeners(eventName?: string): this;
-  off: OnEvent<this>;
-  on: OnEvent<this>;
-  once: OnEvent<this>;
-  removeListener: OnEvent<this>;
+  on<TCEvent extends TypedContractEvent>(
+    event: TCEvent,
+    listener: TypedListener<TCEvent>
+  ): Promise<this>;
+  on<TCEvent extends TypedContractEvent>(
+    filter: TypedDeferredTopicFilter<TCEvent>,
+    listener: TypedListener<TCEvent>
+  ): Promise<this>;
 
-  functions: {
-    DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<[string]>;
+  once<TCEvent extends TypedContractEvent>(
+    event: TCEvent,
+    listener: TypedListener<TCEvent>
+  ): Promise<this>;
+  once<TCEvent extends TypedContractEvent>(
+    filter: TypedDeferredTopicFilter<TCEvent>,
+    listener: TypedListener<TCEvent>
+  ): Promise<this>;
 
-    MAINTAINER_ROLE(overrides?: CallOverrides): Promise<[string]>;
+  listeners<TCEvent extends TypedContractEvent>(
+    event: TCEvent
+  ): Promise<Array<TypedListener<TCEvent>>>;
+  listeners(eventName?: string): Promise<Array<Listener>>;
+  removeAllListeners<TCEvent extends TypedContractEvent>(
+    event?: TCEvent
+  ): Promise<this>;
 
-    SEPARATOR(overrides?: CallOverrides): Promise<[string]>;
+  DEFAULT_ADMIN_ROLE: TypedContractMethod<[], [string], "view">;
 
-    activate(
-      name: PromiseOrValue<string>,
-      aliasName: PromiseOrValue<BytesLike>,
-      commitment: PromiseOrValue<BytesLike>,
-      publicAlias: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
+  MAINTAINER_ROLE: TypedContractMethod<[], [string], "view">;
 
-    configs(
-      arg0: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<
-      [BigNumber, boolean] & {
-        numAlias: BigNumber;
-        disallowMaintainer: boolean;
-      }
-    >;
+  SEPARATOR: TypedContractMethod<[], [string], "view">;
 
-    dc(overrides?: CallOverrides): Promise<[string]>;
-
-    deactivate(
-      name: PromiseOrValue<string>,
-      aliasName: PromiseOrValue<BytesLike>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    deactivateAll(
-      name: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    getAllowMaintainerAccess(
-      node: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<[boolean]>;
-
-    getCommitment(
-      node: PromiseOrValue<BytesLike>,
-      aliasName: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<[string]>;
-
-    getNumAlias(
-      node: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
-    getPublicAliases(
-      node: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<[string[]]>;
-
-    getRoleAdmin(
-      role: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<[string]>;
-
-    grantRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    hasRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[boolean]>;
-
-    maxNumAlias(overrides?: CallOverrides): Promise<[BigNumber]>;
-
-    renounceRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    revokeRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    setDc(
-      _dc: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    setMaxNumAlias(
-      _maxNumAlias: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    setPublicAliases(
-      name: PromiseOrValue<string>,
-      aliases: PromiseOrValue<string>[],
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    setUpgradedFrom(
-      _upgradedFrom: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    supportsInterface(
-      interfaceId: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<[boolean]>;
-
-    toggleMaintainerAccess(
-      name: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    upgradedFrom(overrides?: CallOverrides): Promise<[string]>;
-
-    verify(
-      name: PromiseOrValue<string>,
-      msgHash: PromiseOrValue<BytesLike>,
-      aliasName: PromiseOrValue<string>,
-      forwardAddress: PromiseOrValue<string>,
-      sig: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<[void]>;
-  };
-
-  DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
-
-  MAINTAINER_ROLE(overrides?: CallOverrides): Promise<string>;
-
-  SEPARATOR(overrides?: CallOverrides): Promise<string>;
-
-  activate(
-    name: PromiseOrValue<string>,
-    aliasName: PromiseOrValue<BytesLike>,
-    commitment: PromiseOrValue<BytesLike>,
-    publicAlias: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  configs(
-    arg0: PromiseOrValue<BytesLike>,
-    overrides?: CallOverrides
-  ): Promise<
-    [BigNumber, boolean] & { numAlias: BigNumber; disallowMaintainer: boolean }
+  activate: TypedContractMethod<
+    [
+      name: string,
+      aliasName: BytesLike,
+      commitment: BytesLike,
+      publicAlias: string
+    ],
+    [void],
+    "nonpayable"
   >;
 
-  dc(overrides?: CallOverrides): Promise<string>;
+  configs: TypedContractMethod<
+    [arg0: BytesLike],
+    [[bigint, boolean] & { numAlias: bigint; disallowMaintainer: boolean }],
+    "view"
+  >;
 
-  deactivate(
-    name: PromiseOrValue<string>,
-    aliasName: PromiseOrValue<BytesLike>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
+  dc: TypedContractMethod<[], [string], "view">;
 
-  deactivateAll(
-    name: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
+  deactivate: TypedContractMethod<
+    [name: string, aliasName: BytesLike],
+    [void],
+    "nonpayable"
+  >;
 
-  getAllowMaintainerAccess(
-    node: PromiseOrValue<BytesLike>,
-    overrides?: CallOverrides
-  ): Promise<boolean>;
+  deactivateAll: TypedContractMethod<[name: string], [void], "nonpayable">;
 
-  getCommitment(
-    node: PromiseOrValue<BytesLike>,
-    aliasName: PromiseOrValue<BytesLike>,
-    overrides?: CallOverrides
-  ): Promise<string>;
+  getAllowMaintainerAccess: TypedContractMethod<
+    [node: BytesLike],
+    [boolean],
+    "view"
+  >;
 
-  getNumAlias(
-    node: PromiseOrValue<BytesLike>,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
+  getCommitment: TypedContractMethod<
+    [node: BytesLike, aliasName: BytesLike],
+    [string],
+    "view"
+  >;
 
-  getPublicAliases(
-    node: PromiseOrValue<BytesLike>,
-    overrides?: CallOverrides
-  ): Promise<string[]>;
+  getNumAlias: TypedContractMethod<[node: BytesLike], [bigint], "view">;
 
-  getRoleAdmin(
-    role: PromiseOrValue<BytesLike>,
-    overrides?: CallOverrides
-  ): Promise<string>;
+  getPublicAliases: TypedContractMethod<[node: BytesLike], [string[]], "view">;
 
-  grantRole(
-    role: PromiseOrValue<BytesLike>,
-    account: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
+  getRoleAdmin: TypedContractMethod<[role: BytesLike], [string], "view">;
 
-  hasRole(
-    role: PromiseOrValue<BytesLike>,
-    account: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<boolean>;
+  grantRole: TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
 
-  maxNumAlias(overrides?: CallOverrides): Promise<BigNumber>;
+  hasRole: TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [boolean],
+    "view"
+  >;
 
-  renounceRole(
-    role: PromiseOrValue<BytesLike>,
-    account: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
+  maxNumAlias: TypedContractMethod<[], [bigint], "view">;
 
-  revokeRole(
-    role: PromiseOrValue<BytesLike>,
-    account: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
+  renounceRole: TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
 
-  setDc(
-    _dc: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
+  revokeRole: TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
 
-  setMaxNumAlias(
-    _maxNumAlias: PromiseOrValue<BigNumberish>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
+  setDc: TypedContractMethod<[_dc: AddressLike], [void], "nonpayable">;
 
-  setPublicAliases(
-    name: PromiseOrValue<string>,
-    aliases: PromiseOrValue<string>[],
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
+  setMaxNumAlias: TypedContractMethod<
+    [_maxNumAlias: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
 
-  setUpgradedFrom(
-    _upgradedFrom: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
+  setPublicAliases: TypedContractMethod<
+    [name: string, aliases: string[]],
+    [void],
+    "nonpayable"
+  >;
 
-  supportsInterface(
-    interfaceId: PromiseOrValue<BytesLike>,
-    overrides?: CallOverrides
-  ): Promise<boolean>;
+  setUpgradedFrom: TypedContractMethod<
+    [_upgradedFrom: AddressLike],
+    [void],
+    "nonpayable"
+  >;
 
-  toggleMaintainerAccess(
-    name: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
+  supportsInterface: TypedContractMethod<
+    [interfaceId: BytesLike],
+    [boolean],
+    "view"
+  >;
 
-  upgradedFrom(overrides?: CallOverrides): Promise<string>;
+  toggleMaintainerAccess: TypedContractMethod<
+    [name: string],
+    [void],
+    "nonpayable"
+  >;
 
-  verify(
-    name: PromiseOrValue<string>,
-    msgHash: PromiseOrValue<BytesLike>,
-    aliasName: PromiseOrValue<string>,
-    forwardAddress: PromiseOrValue<string>,
-    sig: PromiseOrValue<BytesLike>,
-    overrides?: CallOverrides
-  ): Promise<void>;
+  upgradedFrom: TypedContractMethod<[], [string], "view">;
 
-  callStatic: {
-    DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
+  verify: TypedContractMethod<
+    [
+      name: string,
+      msgHash: BytesLike,
+      aliasName: string,
+      forwardAddress: string,
+      sig: BytesLike
+    ],
+    [void],
+    "view"
+  >;
 
-    MAINTAINER_ROLE(overrides?: CallOverrides): Promise<string>;
+  getFunction<T extends ContractMethod = ContractMethod>(
+    key: string | FunctionFragment
+  ): T;
 
-    SEPARATOR(overrides?: CallOverrides): Promise<string>;
+  getFunction(
+    nameOrSignature: "DEFAULT_ADMIN_ROLE"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "MAINTAINER_ROLE"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "SEPARATOR"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "activate"
+  ): TypedContractMethod<
+    [
+      name: string,
+      aliasName: BytesLike,
+      commitment: BytesLike,
+      publicAlias: string
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "configs"
+  ): TypedContractMethod<
+    [arg0: BytesLike],
+    [[bigint, boolean] & { numAlias: bigint; disallowMaintainer: boolean }],
+    "view"
+  >;
+  getFunction(nameOrSignature: "dc"): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "deactivate"
+  ): TypedContractMethod<
+    [name: string, aliasName: BytesLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "deactivateAll"
+  ): TypedContractMethod<[name: string], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "getAllowMaintainerAccess"
+  ): TypedContractMethod<[node: BytesLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "getCommitment"
+  ): TypedContractMethod<
+    [node: BytesLike, aliasName: BytesLike],
+    [string],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "getNumAlias"
+  ): TypedContractMethod<[node: BytesLike], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "getPublicAliases"
+  ): TypedContractMethod<[node: BytesLike], [string[]], "view">;
+  getFunction(
+    nameOrSignature: "getRoleAdmin"
+  ): TypedContractMethod<[role: BytesLike], [string], "view">;
+  getFunction(
+    nameOrSignature: "grantRole"
+  ): TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "hasRole"
+  ): TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [boolean],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "maxNumAlias"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "renounceRole"
+  ): TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "revokeRole"
+  ): TypedContractMethod<
+    [role: BytesLike, account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "setDc"
+  ): TypedContractMethod<[_dc: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "setMaxNumAlias"
+  ): TypedContractMethod<[_maxNumAlias: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "setPublicAliases"
+  ): TypedContractMethod<
+    [name: string, aliases: string[]],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "setUpgradedFrom"
+  ): TypedContractMethod<[_upgradedFrom: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "supportsInterface"
+  ): TypedContractMethod<[interfaceId: BytesLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "toggleMaintainerAccess"
+  ): TypedContractMethod<[name: string], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "upgradedFrom"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "verify"
+  ): TypedContractMethod<
+    [
+      name: string,
+      msgHash: BytesLike,
+      aliasName: string,
+      forwardAddress: string,
+      sig: BytesLike
+    ],
+    [void],
+    "view"
+  >;
 
-    activate(
-      name: PromiseOrValue<string>,
-      aliasName: PromiseOrValue<BytesLike>,
-      commitment: PromiseOrValue<BytesLike>,
-      publicAlias: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    configs(
-      arg0: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<
-      [BigNumber, boolean] & {
-        numAlias: BigNumber;
-        disallowMaintainer: boolean;
-      }
-    >;
-
-    dc(overrides?: CallOverrides): Promise<string>;
-
-    deactivate(
-      name: PromiseOrValue<string>,
-      aliasName: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    deactivateAll(
-      name: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    getAllowMaintainerAccess(
-      node: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<boolean>;
-
-    getCommitment(
-      node: PromiseOrValue<BytesLike>,
-      aliasName: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<string>;
-
-    getNumAlias(
-      node: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getPublicAliases(
-      node: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<string[]>;
-
-    getRoleAdmin(
-      role: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<string>;
-
-    grantRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    hasRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<boolean>;
-
-    maxNumAlias(overrides?: CallOverrides): Promise<BigNumber>;
-
-    renounceRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    revokeRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    setDc(
-      _dc: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    setMaxNumAlias(
-      _maxNumAlias: PromiseOrValue<BigNumberish>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    setPublicAliases(
-      name: PromiseOrValue<string>,
-      aliases: PromiseOrValue<string>[],
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    setUpgradedFrom(
-      _upgradedFrom: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    supportsInterface(
-      interfaceId: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<boolean>;
-
-    toggleMaintainerAccess(
-      name: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    upgradedFrom(overrides?: CallOverrides): Promise<string>;
-
-    verify(
-      name: PromiseOrValue<string>,
-      msgHash: PromiseOrValue<BytesLike>,
-      aliasName: PromiseOrValue<string>,
-      forwardAddress: PromiseOrValue<string>,
-      sig: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-  };
+  getEvent(
+    key: "RoleAdminChanged"
+  ): TypedContractEvent<
+    RoleAdminChangedEvent.InputTuple,
+    RoleAdminChangedEvent.OutputTuple,
+    RoleAdminChangedEvent.OutputObject
+  >;
+  getEvent(
+    key: "RoleGranted"
+  ): TypedContractEvent<
+    RoleGrantedEvent.InputTuple,
+    RoleGrantedEvent.OutputTuple,
+    RoleGrantedEvent.OutputObject
+  >;
+  getEvent(
+    key: "RoleRevoked"
+  ): TypedContractEvent<
+    RoleRevokedEvent.InputTuple,
+    RoleRevokedEvent.OutputTuple,
+    RoleRevokedEvent.OutputObject
+  >;
 
   filters: {
-    "RoleAdminChanged(bytes32,bytes32,bytes32)"(
-      role?: PromiseOrValue<BytesLike> | null,
-      previousAdminRole?: PromiseOrValue<BytesLike> | null,
-      newAdminRole?: PromiseOrValue<BytesLike> | null
-    ): RoleAdminChangedEventFilter;
-    RoleAdminChanged(
-      role?: PromiseOrValue<BytesLike> | null,
-      previousAdminRole?: PromiseOrValue<BytesLike> | null,
-      newAdminRole?: PromiseOrValue<BytesLike> | null
-    ): RoleAdminChangedEventFilter;
+    "RoleAdminChanged(bytes32,bytes32,bytes32)": TypedContractEvent<
+      RoleAdminChangedEvent.InputTuple,
+      RoleAdminChangedEvent.OutputTuple,
+      RoleAdminChangedEvent.OutputObject
+    >;
+    RoleAdminChanged: TypedContractEvent<
+      RoleAdminChangedEvent.InputTuple,
+      RoleAdminChangedEvent.OutputTuple,
+      RoleAdminChangedEvent.OutputObject
+    >;
 
-    "RoleGranted(bytes32,address,address)"(
-      role?: PromiseOrValue<BytesLike> | null,
-      account?: PromiseOrValue<string> | null,
-      sender?: PromiseOrValue<string> | null
-    ): RoleGrantedEventFilter;
-    RoleGranted(
-      role?: PromiseOrValue<BytesLike> | null,
-      account?: PromiseOrValue<string> | null,
-      sender?: PromiseOrValue<string> | null
-    ): RoleGrantedEventFilter;
+    "RoleGranted(bytes32,address,address)": TypedContractEvent<
+      RoleGrantedEvent.InputTuple,
+      RoleGrantedEvent.OutputTuple,
+      RoleGrantedEvent.OutputObject
+    >;
+    RoleGranted: TypedContractEvent<
+      RoleGrantedEvent.InputTuple,
+      RoleGrantedEvent.OutputTuple,
+      RoleGrantedEvent.OutputObject
+    >;
 
-    "RoleRevoked(bytes32,address,address)"(
-      role?: PromiseOrValue<BytesLike> | null,
-      account?: PromiseOrValue<string> | null,
-      sender?: PromiseOrValue<string> | null
-    ): RoleRevokedEventFilter;
-    RoleRevoked(
-      role?: PromiseOrValue<BytesLike> | null,
-      account?: PromiseOrValue<string> | null,
-      sender?: PromiseOrValue<string> | null
-    ): RoleRevokedEventFilter;
-  };
-
-  estimateGas: {
-    DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
-
-    MAINTAINER_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
-
-    SEPARATOR(overrides?: CallOverrides): Promise<BigNumber>;
-
-    activate(
-      name: PromiseOrValue<string>,
-      aliasName: PromiseOrValue<BytesLike>,
-      commitment: PromiseOrValue<BytesLike>,
-      publicAlias: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    configs(
-      arg0: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    dc(overrides?: CallOverrides): Promise<BigNumber>;
-
-    deactivate(
-      name: PromiseOrValue<string>,
-      aliasName: PromiseOrValue<BytesLike>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    deactivateAll(
-      name: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    getAllowMaintainerAccess(
-      node: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getCommitment(
-      node: PromiseOrValue<BytesLike>,
-      aliasName: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getNumAlias(
-      node: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getPublicAliases(
-      node: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getRoleAdmin(
-      role: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    grantRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    hasRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    maxNumAlias(overrides?: CallOverrides): Promise<BigNumber>;
-
-    renounceRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    revokeRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    setDc(
-      _dc: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    setMaxNumAlias(
-      _maxNumAlias: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    setPublicAliases(
-      name: PromiseOrValue<string>,
-      aliases: PromiseOrValue<string>[],
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    setUpgradedFrom(
-      _upgradedFrom: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    supportsInterface(
-      interfaceId: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    toggleMaintainerAccess(
-      name: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    upgradedFrom(overrides?: CallOverrides): Promise<BigNumber>;
-
-    verify(
-      name: PromiseOrValue<string>,
-      msgHash: PromiseOrValue<BytesLike>,
-      aliasName: PromiseOrValue<string>,
-      forwardAddress: PromiseOrValue<string>,
-      sig: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-  };
-
-  populateTransaction: {
-    DEFAULT_ADMIN_ROLE(
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    MAINTAINER_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    SEPARATOR(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    activate(
-      name: PromiseOrValue<string>,
-      aliasName: PromiseOrValue<BytesLike>,
-      commitment: PromiseOrValue<BytesLike>,
-      publicAlias: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    configs(
-      arg0: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    dc(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    deactivate(
-      name: PromiseOrValue<string>,
-      aliasName: PromiseOrValue<BytesLike>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    deactivateAll(
-      name: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    getAllowMaintainerAccess(
-      node: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    getCommitment(
-      node: PromiseOrValue<BytesLike>,
-      aliasName: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    getNumAlias(
-      node: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    getPublicAliases(
-      node: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    getRoleAdmin(
-      role: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    grantRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    hasRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    maxNumAlias(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    renounceRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    revokeRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setDc(
-      _dc: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setMaxNumAlias(
-      _maxNumAlias: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setPublicAliases(
-      name: PromiseOrValue<string>,
-      aliases: PromiseOrValue<string>[],
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setUpgradedFrom(
-      _upgradedFrom: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    supportsInterface(
-      interfaceId: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    toggleMaintainerAccess(
-      name: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    upgradedFrom(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    verify(
-      name: PromiseOrValue<string>,
-      msgHash: PromiseOrValue<BytesLike>,
-      aliasName: PromiseOrValue<string>,
-      forwardAddress: PromiseOrValue<string>,
-      sig: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
+    "RoleRevoked(bytes32,address,address)": TypedContractEvent<
+      RoleRevokedEvent.InputTuple,
+      RoleRevokedEvent.OutputTuple,
+      RoleRevokedEvent.OutputObject
+    >;
+    RoleRevoked: TypedContractEvent<
+      RoleRevokedEvent.InputTuple,
+      RoleRevokedEvent.OutputTuple,
+      RoleRevokedEvent.OutputObject
+    >;
   };
 }

@@ -2,15 +2,19 @@
 /* tslint:disable */
 /* eslint-disable */
 import {
-  Signer,
-  utils,
   Contract,
   ContractFactory,
-  BigNumberish,
-  Overrides,
+  ContractTransactionResponse,
+  Interface,
 } from "ethers";
-import type { Provider, TransactionRequest } from "@ethersproject/providers";
-import type { PromiseOrValue } from "../../../common";
+import type {
+  Signer,
+  BigNumberish,
+  AddressLike,
+  ContractDeployTransaction,
+  ContractRunner,
+} from "ethers";
+import type { NonPayableOverrides } from "../../../common";
 import type { EAS, EASInterface } from "../../../contracts/EAS.sol/EAS";
 
 const _abi = [
@@ -588,33 +592,34 @@ export class EAS__factory extends ContractFactory {
     }
   }
 
-  override deploy(
-    _dc: PromiseOrValue<string>,
-    _maxNumAlias: PromiseOrValue<BigNumberish>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<EAS> {
-    return super.deploy(_dc, _maxNumAlias, overrides || {}) as Promise<EAS>;
-  }
   override getDeployTransaction(
-    _dc: PromiseOrValue<string>,
-    _maxNumAlias: PromiseOrValue<BigNumberish>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): TransactionRequest {
+    _dc: AddressLike,
+    _maxNumAlias: BigNumberish,
+    overrides?: NonPayableOverrides & { from?: string }
+  ): Promise<ContractDeployTransaction> {
     return super.getDeployTransaction(_dc, _maxNumAlias, overrides || {});
   }
-  override attach(address: string): EAS {
-    return super.attach(address) as EAS;
+  override deploy(
+    _dc: AddressLike,
+    _maxNumAlias: BigNumberish,
+    overrides?: NonPayableOverrides & { from?: string }
+  ) {
+    return super.deploy(_dc, _maxNumAlias, overrides || {}) as Promise<
+      EAS & {
+        deploymentTransaction(): ContractTransactionResponse;
+      }
+    >;
   }
-  override connect(signer: Signer): EAS__factory {
-    return super.connect(signer) as EAS__factory;
+  override connect(runner: ContractRunner | null): EAS__factory {
+    return super.connect(runner) as EAS__factory;
   }
 
   static readonly bytecode = _bytecode;
   static readonly abi = _abi;
   static createInterface(): EASInterface {
-    return new utils.Interface(_abi) as EASInterface;
+    return new Interface(_abi) as EASInterface;
   }
-  static connect(address: string, signerOrProvider: Signer | Provider): EAS {
-    return new Contract(address, _abi, signerOrProvider) as EAS;
+  static connect(address: string, runner?: ContractRunner | null): EAS {
+    return new Contract(address, _abi, runner) as unknown as EAS;
   }
 }

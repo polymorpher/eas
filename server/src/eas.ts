@@ -1,10 +1,10 @@
-import { getDomain, addDomain, addAlias, deleteAlias, listAlias, checkAlias, updateAlias } from './eas-improvmx'
-import { redisClient } from './redis'
-import config from '../config'
+import { getDomain, addDomain, addAlias, deleteAlias, listAlias, checkAlias, updateAlias } from './eas-improvmx.js'
+import { redisClient } from './redis.js'
+import config from '../config.js'
 import promiseLimit from 'promise-limit'
 export async function initializeDNS (sld: string): Promise<void> {
   const key = `${sld}.${config.TLD}.`
-  const rootRecord = JSON.parse(await redisClient.hGet(key, '@'))
+  const rootRecord = JSON.parse(await redisClient.hGet(key, '@') ?? '{}')
   const newTxtEntry = { ttl: 300, text: 'v=spf1 include:spf.improvmx.com ~all' }
   const newTxt = rootRecord.txt?.length > 0 ? [...rootRecord.txt, newTxtEntry] : [newTxtEntry]
   const newMx = config.improvMX.mx.map((mx, i) => ({ ttl: 300, preference: i * 10, host: mx }))

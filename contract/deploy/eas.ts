@@ -1,6 +1,8 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import '@nomicfoundation/hardhat-ethers'
 import { ethers } from 'hardhat'
 import { EAS } from '../typechain-types'
+import { BaseContract } from 'ethers'
 const DC_CONTRACT = process.env.DC_CONTRACT as string
 const MAX_NUM_ALIAS = process.env.MAX_NUM_ALIAS as string
 const MAINTAINERS = JSON.parse(process.env.MAINTAINERS || '[]') as string[]
@@ -16,8 +18,10 @@ const f = async function (hre: HardhatRuntimeEnvironment) {
       MAX_NUM_ALIAS
     ]
   })
-  const eas: EAS = await ethers.getContractAt('EAS', easDeploy.address)
+  const eas = await ethers.getContractAt('EAS', easDeploy.address) as BaseContract as EAS
+  // ethers.p
   const maintainerRole = await eas.MAINTAINER_ROLE()
+  console.log('maintainerRole', maintainerRole)
   for (const m of MAINTAINERS) {
     const tx = await eas.grantRole(maintainerRole, m)
     await tx.wait()
@@ -28,7 +32,7 @@ const f = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`Set upgradedFrom to ${UPGRADED_FROM} (tx: ${tx.hash})`)
     await tx.wait()
   }
-  console.log('EAS deployed at:', eas.address)
+  console.log('EAS deployed at:', await eas.getAddress())
   console.log('- Deployer Admin Role:', await eas.hasRole(await eas.DEFAULT_ADMIN_ROLE(), deployer))
   console.log('- Deployer Maintainer Role:', await eas.hasRole(maintainerRole, deployer))
   console.log('- DC:', await eas.dc())

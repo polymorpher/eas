@@ -1,8 +1,6 @@
 import * as dotenv from 'dotenv'
-
-import { HardhatUserConfig, task } from 'hardhat/config'
-import '@nomiclabs/hardhat-etherscan'
-import '@nomiclabs/hardhat-waffle'
+import '@nomicfoundation/hardhat-ethers'
+import { HardhatUserConfig } from 'hardhat/config'
 import '@typechain/hardhat'
 import 'hardhat-gas-reporter'
 import 'hardhat-deploy'
@@ -12,13 +10,6 @@ import '@atixlabs/hardhat-time-n-mine'
 import 'hardhat-spdx-license-identifier'
 import 'hardhat-contract-sizer'
 dotenv.config()
-
-task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
-  const accounts = await hre.ethers.getSigners()
-  for (const account of accounts) {
-    console.log(account.address)
-  }
-})
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -34,7 +25,8 @@ const config: HardhatUserConfig = {
     deployer: 0
   },
   typechain: {
-    target: 'ethers-v5'
+    target: 'ethers-v6',
+    // node16Modules: true
   },
   networks: {
     local: {

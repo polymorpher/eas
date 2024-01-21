@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { httpsServer, httpServer } from '../app'
+import { httpsServer, httpServer } from '../app.js'
 import { type AddressInfo } from 'net'
 
 console.log('Starting web server...')

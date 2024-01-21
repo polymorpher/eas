@@ -2,8 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { Contract, Signer, utils } from "ethers";
-import type { Provider } from "@ethersproject/providers";
+import { Contract, Interface, type ContractRunner } from "ethers";
 import type { IDC, IDCInterface } from "../../../contracts/EAS.sol/IDC";
 
 const _abi = [
@@ -50,9 +49,9 @@ const _abi = [
 export class IDC__factory {
   static readonly abi = _abi;
   static createInterface(): IDCInterface {
-    return new utils.Interface(_abi) as IDCInterface;
+    return new Interface(_abi) as IDCInterface;
   }
-  static connect(address: string, signerOrProvider: Signer | Provider): IDC {
-    return new Contract(address, _abi, signerOrProvider) as IDC;
+  static connect(address: string, runner?: ContractRunner | null): IDC {
+    return new Contract(address, _abi, runner) as unknown as IDC;
   }
 }

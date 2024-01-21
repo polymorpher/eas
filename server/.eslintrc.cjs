@@ -9,6 +9,8 @@ module.exports = {
   ],
   parser: '@typescript-eslint/parser',
   rules: {
+    "@typescript-eslint/restrict-plus-operands": ["error"],
+    '@typescript-eslint/strict-boolean-expressions': 0,
     'no-await-in-loop': 0,
     'no-underscore-dangle': 0,
     'import/prefer-default-export': 0,

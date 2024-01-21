@@ -1,17 +1,23 @@
 import dotenv from 'dotenv'
 import Fingerprint from 'express-fingerprint'
 import createError from 'http-errors'
-import express from 'express'
+import express, { type NextFunction, type Request, type Response } from 'express'
 import path from 'path'
 import cookieParser from 'cookie-parser'
 import logger from 'morgan'
-import config from './config'
-import _index from './routes'
-import * as bodyParser from 'body-parser'
+import config from './config.js'
+import _index from './routes/index.js'
+import bodyParser from 'body-parser'
 import * as https from 'https'
 import * as http from 'http'
 import * as fs from 'fs'
-import { initRedis } from './src/redis'
+import { initRedis } from './src/redis.js'
+import { type Server as HttpServer } from 'http'
+import { fileURLToPath } from 'url'
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const __filename = fileURLToPath(import.meta.url)
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const __dirname = path.dirname(__filename)
 
 dotenv.config()
 
@@ -30,7 +36,7 @@ initRedis().then(() => {
   process.exit(1)
 })
 
-let httpServer
+let httpServer: HttpServer
 
 const httpsOptions = {
   key: fs.readFileSync(config.https.key),
@@ -72,7 +78,7 @@ app.use(cookieParser())
 if (config.corsOrigins !== '') {
   app.use((req, res, next) => {
     // res.header('Access-Control-Allow-Origin', config.corsOrigins)
-    if (config.corsOrigins === '*' || config.corsOrigins.includes(req.headers.origin as string)) {
+    if (config.corsOrigins === '*' || (req.headers.origin && config.corsOrigins.includes(req.headers.origin))) {
       res.header('Access-Control-Allow-Origin', req.headers.origin ?? config.corsOrigins)
     } else {
       res.header('Access-Control-Allow-Origin', config.corsOrigins)
@@ -96,7 +102,7 @@ app.use(function (req, res, next) {
 })
 
 // error handler
-app.use(function (err, req, res, next) {
+app.use(function (err: any, req: Request, res: Response, next: NextFunction) {
   // set locals, only providing error in development
   res.locals.message = err.message
   res.locals.error = config.debug ? err : {}
